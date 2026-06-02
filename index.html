@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UINEEX Ai - Самообучающийся Кодер</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Боковая панель управления и обучения */
+        .sidebar {
+            width: 280px;
+            background-color: #252526;
+            border-right: 1px solid #3c3c3c;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+            color: #569cd6;
+            text-align: center;
+        }
+
+        .train-section {
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #3c3c3c;
+        }
+
+        .train-section h3 {
+            margin-top: 0;
+            font-size: 14px;
+            color: #4fc1ff;
+        }
+
+        input[type="text"] {
+            width: 90%;
+            padding: 8px;
+            background-color: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            color: white;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        /* Главная зона */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 6px;
+            max-width: 85%;
+            line-height: 1.5;
+        }
+
+        .user-message { background-color: #2d2d2d; align-self: flex-end; border: 1px solid #3c3c3c; }
+        .ai-message { background-color: #252526; align-self: flex-start; border: 1px solid #3c3c3c; width: 95%; }
+
+        .input-area {
+            padding: 20px;
+            background-color: #252526;
+            border-top: 1px solid #3c3c3c;
+            display: flex;
+            gap: 10px;
+        }
+
+        textarea {
+            flex: 1;
+            height: 50px;
+            background-color: #2d2d2d;
+            border: 1px solid #3c3c3c;
+            border-radius: 6px;
+            color: #fff;
+            padding: 10px;
+            resize: none;
+        }
+
+        button {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover { background-color: #1177bb; }
+        
+        .status { font-size: 12px; color: #aaaaaa; margin-top: 5px; }
+        pre { background-color: #1a1a1a; padding: 12px; border-radius: 4px; color: #9cdcfe; overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div>
+            <div class="logo">UINEEX Ai</div>
+            <div style="text-align:center; font-size:12px; color:#888;">HTTPS Модификация</div>
+        </div>
+
+        <div class="train-section">
+            <h3>Обучить ИИ из Википедии</h3>
+            <input type="text" id="wikiTopic" placeholder="Например: JavaScript">
+            <button id="trainBtn" style="width: 100%; padding: 8px 0;">Загрузить знания</button>
+            <div class="status" id="trainStatus">Память пуста. Нужна загрузка.</div>
+        </div>
+
+        <div style="margin-top: auto; font-size: 11px; color: #555;">База данных: LocalStorage</div>
+    </div>
+
+    <div class="main-container">
+        <div class="chat-area" id="chatArea">
+            <div class="message ai-message">
+                Привет! Я <strong>UINEEX Ai</strong>. Теперь я умею читать Википедию напрямую! Введи тему слева, чтобы я её изучил, а потом задай мне вопрос.
+            </div>
+        </div>
+
+        <div class="input-area">
+            <textarea id="userInput" placeholder="Напиши запрос (например: расскажи про JavaScript)..."></textarea>
+            <button id="sendBtn">Запуск</button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация памяти при старте страницы
+        if(!localStorage.getItem('ai_brain')) {
+            localStorage.setItem('ai_brain', JSON.stringify({}));
+        }
+        
+        updateStatus();
+
+        function updateStatus() {
+            const brain = JSON.parse(localStorage.getItem('ai_brain'));
+            const topics = Object.keys(brain);
+            const statusText = document.getElementById('trainStatus');
+            if(topics.length > 0) {
+                statusText.innerHTML = `ИИ знает темы:<br><b>${topics.join(', ')}</b>`;
+            } else {
+                statusText.innerText = "Память пуста. Введи тему!";
+            }
+        }
+
+        // Функция загрузки данных с Википедии (Обход CORS через origin=*)
+        document.getElementById('trainBtn').addEventListener('click', async () => {
+            const topic = document.getElementById('wikiTopic').value.trim();
+            const statusText = document.getElementById('trainStatus');
+            if(!topic) return;
+
+            statusText.innerText = "Изучаю статью...";
+
+            const url = `https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(topic)}&format=json&origin=*`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                const pages = data.query.pages;
+                const pageId = Object.keys(pages)[0];
+                
+                if (pageId === "-1") {
+                    statusText.innerText = "Статья не найдена!";
+                    return;
+                }
+
+                const textContent = pages[pageId].extract;
+
+                // Запись в локальную память
+                const brain = JSON.parse(localStorage.getItem('ai_brain'));
+                brain[topic.toLowerCase()] = textContent;
+                localStorage.setItem('ai_brain', JSON.stringify(brain));
+
+                document.getElementById('wikiTopic').value = '';
+                updateStatus();
+                
+                alert(`UINEEX Ai успешно запомнил тему: ${topic}!`);
+            } catch (error) {
+                statusText.innerText = "Ошибка сети при чтении!";
+                console.error(error);
+            }
+        });
+
+        // Логика работы чата и анализа информации
+        document.getElementById('sendBtn').addEventListener('click', () => {
+            const input = document.getElementById('userInput');
+            const chatArea = document.getElementById('chatArea');
+            const query = input.value.trim().toLowerCase();
+            
+            if (query === '') return;
+
+            // Рендер сообщения пользователя
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user-message';
+            userDiv.textContent = input.value;
+            chatArea.appendChild(userDiv);
+
+            // Поиск ответа в сохраненной памяти ИИ
+            const brain = JSON.parse(localStorage.getItem('ai_brain'));
+            let foundKnowledge = null;
+
+            // Проверяем, совпадает ли запрос с какой-то из выученных тем
+            for (let key in brain) {
+                if (query.includes(key)) {
+                    foundKnowledge = brain[key];
+                    break;
+                }
+            }
+
+            const aiDiv = document.createElement('div');
+            aiDiv.className = 'message ai-message';
+
+            if (foundKnowledge) {
+                aiDiv.innerHTML = `<strong>UINEEX Ai на основе выученного:</strong><br><p>${foundKnowledge}</p>`;
+            } else {
+                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br>Я пока не знаю ничего про это. Пожалуйста, обучи меня этой теме с помощью Википедии на панели слева!`;
+            }
+
+            chatArea.appendChild(aiDiv);
+            input.value = '';
+            chatArea.scrollTop = chatArea.scrollHeight;
+        });
+    </script>
+</body>
+</html>
