@@ -98,6 +98,11 @@
             color: #fff;
             padding: 10px;
             resize: none;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: 1px solid #569cd6;
         }
 
         button {
@@ -121,7 +126,7 @@
     <div class="sidebar">
         <div>
             <div class="logo">UINEEX Ai</div>
-            <div style="text-align:center; font-size:12px; color:#888;">HTTPS Модификация</div>
+            <div style="text-align:center; font-size:12px; color:#888;">Версия 1.1 (Умный пересказ)</div>
         </div>
 
         <div class="train-section">
@@ -131,18 +136,20 @@
             <div class="status" id="trainStatus">Память пуста. Нужна загрузка.</div>
         </div>
 
-        <div style="margin-top: auto; font-size: 11px; color: #555;">База данных: LocalStorage</div>
+        <div style="margin-top: auto; font-size: 11px; color: #555;">Управление: Enter — отправка</div>
     </div>
 
     <div class="main-container">
         <div class="chat-area" id="chatArea">
             <div class="message ai-message">
-                Привет! Я <strong>UINEEX Ai</strong>. Теперь я умею читать Википедию напрямую! Введи тему слева, чтобы я её изучил, а потом задай мне вопрос.
+                Привет! Я <strong>UINEEX Ai</strong>. Я обновил свои алгоритмы! Теперь я не просто копирую текст, а пытаюсь объяснить его суть своими словами. 
+                <br><br>
+                Обучи меня чему-нибудь слева, а потом спроси меня об этом. Отправлять сообщения теперь можно на <strong>Enter</strong>!
             </div>
         </div>
 
         <div class="input-area">
-            <textarea id="userInput" placeholder="Напиши запрос (например: расскажи про JavaScript)..."></textarea>
+            <textarea id="userInput" placeholder="Напиши запрос (например: что такое javascript)..."></textarea>
             <button id="sendBtn">Запуск</button>
         </div>
     </div>
@@ -166,7 +173,7 @@
             }
         }
 
-        // Функция загрузки данных с Википедии (Обход CORS через origin=*)
+        // Загрузка данных с Википедии
         document.getElementById('trainBtn').addEventListener('click', async () => {
             const topic = document.getElementById('wikiTopic').value.trim();
             const statusText = document.getElementById('trainStatus');
@@ -189,7 +196,6 @@
 
                 const textContent = pages[pageId].extract;
 
-                // Запись в локальную память
                 const brain = JSON.parse(localStorage.getItem('ai_brain'));
                 brain[topic.toLowerCase()] = textContent;
                 localStorage.setItem('ai_brain', JSON.stringify(brain));
@@ -204,8 +210,43 @@
             }
         });
 
-        // Логика работы чата и анализа информации
-        document.getElementById('sendBtn').addEventListener('click', () => {
+        // Функция «пересказа своими словами»
+        function rephraseAI(rawText, topicName) {
+            if (!rawText) return "Слушай, я просмотрел свои чертоги разума, но по этой теме у меня пока пусто.";
+
+            // Бьем текст на предложения
+            let sentences = rawText.split(/[.!?]\s+/);
+            
+            // Берем первые 2-3 предложения (там самая выжимка сути)
+            let coreInfo = sentences.slice(0, 3).join('. ');
+            if (!coreInfo.endsWith('.')) coreInfo += '.';
+
+            // Варианты живого начала ответа
+            const intros = [
+                `Слушай, я тут поразмыслил над темой <strong>${topicName}</strong>. Если объяснять на пальцах, то `,
+                `А, <strong>${topicName}</strong>! Смотри, тут всё устроено довольно просто: `,
+                `Вот как я это понимаю. Короче говоря, <strong>${topicName}</strong> — это `,
+                `По моим данным, если отбросить всю сложную научную терминологию, `
+            ];
+
+            // Варианты концовок
+            const outros = [
+                ` Надеюсь, теперь общая картина прояснилась! Всё не так сложно, как кажется.`,
+                ` В общем, штука полезная и важная, если хочешь в этом разбираться.`,
+                ` Если тебе нужны более глубокие технические детали — дай знать, раскопаем подробнее.`,
+                ` Это если объяснять кратко и без лишней воды.`
+            ];
+
+            // Выбираем случайные фразы для имитации мышления
+            const randomIntro = intros[Math.floor(Math.random() * intros.length)];
+            const randomOutro = outros[Math.floor(Math.random() * outros.length)];
+
+            // Собираем "авторский" ответ ИИ
+            return `${randomIntro}${coreInfo}${randomOutro}`;
+        }
+
+        // Логика отправки сообщений
+        function sendMessage() {
             const input = document.getElementById('userInput');
             const chatArea = document.getElementById('chatArea');
             const query = input.value.trim().toLowerCase();
@@ -218,14 +259,15 @@
             userDiv.textContent = input.value;
             chatArea.appendChild(userDiv);
 
-            // Поиск ответа в сохраненной памяти ИИ
+            // Поиск совпадений в памяти
             const brain = JSON.parse(localStorage.getItem('ai_brain'));
             let foundKnowledge = null;
+            let matchedTopic = "";
 
-            // Проверяем, совпадает ли запрос с какой-то из выученных тем
             for (let key in brain) {
                 if (query.includes(key)) {
                     foundKnowledge = brain[key];
+                    matchedTopic = key;
                     break;
                 }
             }
@@ -234,14 +276,27 @@
             aiDiv.className = 'message ai-message';
 
             if (foundKnowledge) {
-                aiDiv.innerHTML = `<strong>UINEEX Ai на основе выученного:</strong><br><p>${foundKnowledge}</p>`;
+                // Передаем текст в функцию перефразирования
+                const aiExplanation = rephraseAI(foundKnowledge, matchedTopic.toUpperCase());
+                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><p>${aiExplanation}</p>`;
             } else {
-                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br>Я пока не знаю ничего про это. Пожалуйста, обучи меня этой теме с помощью Википедии на панели слева!`;
+                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br>Хмм, про это я ещё ничего не читал. Закинь эту тему в блок обучения слева, я мигом изучу!`;
             }
 
             chatArea.appendChild(aiDiv);
             input.value = '';
             chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        // Клик по кнопке "Запуск"
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+
+        // Отправка по нажатию Enter (без Shift)
+        document.getElementById('userInput').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); // Отменяем стандартный перенос строки
+                sendMessage(); // Вызываем отправку
+            }
         });
     </script>
 </body>
