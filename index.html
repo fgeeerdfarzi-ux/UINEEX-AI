@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UINEEX Ai - Живая Генерация</title>
+    <title>UINEEX Ai - Фикс Логики</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -108,14 +108,14 @@
     <div class="main-container">
         <div class="chat-area" id="chatArea">
             <div class="message ai-message">
-                Привет! Я активировал функцию **Потокового Вывода Текста**. 
+                Привет! Я обновил модуль **Лингвистической Очистки**. 
                 <br><br>
-                Теперь мои ответы генерируются пошагово прямо у тебя на глазах. Задай мне вопрос, чтобы увидеть, как работает живой синтез весов!
+                Теперь фразы вроде *"что такое попугай"* или *"расскажи про космос"* обрабатываются корректно: я отсекаю лишнее и обучаюсь именно целевому слову, не смешивая темы!
             </div>
         </div>
 
         <div class="input-area">
-            <textarea id="userInput" placeholder="Напиши слово или тему..."></textarea>
+            <textarea id="userInput" placeholder="Напиши: что такое [тема]..."></textarea>
             <button id="sendBtn">ИИ</button>
         </div>
     </div>
@@ -140,6 +140,17 @@
             }
         });
 
+        // ================= ОЧИСТИТЕЛЬ ЗАПРОСОВ (Query Лингвистика) =================
+        function extractCoreTopic(rawText) {
+            let clean = rawText.toLowerCase()
+                .replace(/(что такое|кто такой|кто такая|что за|расскажи про|расскажи о|знаешь ли ты|знаешь|покажи|объясни)/gi, '')
+                .trim();
+            
+            // Оставляем только буквы, цифры и пробелы
+            clean = clean.replace(/[^a-zа-яё0-9\s]/g, '');
+            return clean;
+        }
+
         function trainModelOnText(text) {
             const words = text.toLowerCase()
                 .replace(/[^a-zа-яё0-9\s]/g, ' ')
@@ -162,6 +173,7 @@
         }
 
         async function fetchLearningData(topic) {
+            if (!topic) return null;
             const searchUrl = `https://ru.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(topic)}&limit=1&format=json&origin=*`;
             try {
                 const searchResponse = await fetch(searchUrl);
@@ -179,15 +191,23 @@
             }
         }
 
-        function generateTextFromWeights(startPhrase, maxWords = 30) {
+        function generateTextFromWeights(startPhrase, maxWords = 35) {
             const weights = JSON.parse(localStorage.getItem('ai_weights'));
-            const inputWords = startPhrase.toLowerCase().replace(/[^a-zа-яё0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 0);
-            let currentWord = inputWords[inputWords.length - 1];
+            const words = startPhrase.toLowerCase().split(/\s+/).filter(w => w.length > 0);
             
-            if (!weights[currentWord]) {
-                const allKeys = Object.keys(weights);
-                if(allKeys.length === 0) return null;
-                currentWord = allKeys[Math.floor(Math.random() * allKeys.length)];
+            // Ищем с конца фразы первое слово, которое есть в нашей матрице весов
+            let currentWord = "";
+            for (let i = words.length - 1; i >= 0; i--) {
+                if (weights[words[i]]) {
+                    currentWord = words[i];
+                    break;
+                }
+            }
+
+            // ФИКС: Если вообще ни одного слова из запроса не знаем, не берем случайный бред!
+            // Вместо этого мягко генерируем философское размышление на базе самого запроса
+            if (!currentWord) {
+                return `Концепция "${startPhrase}" пока находится на стадии изучения в моих алгоритмах. Чтобы я мог составить веса, мне нужно чуть больше входящих текстовых массивов по этому направлению.`;
             }
 
             let resultChain = [currentWord];
@@ -195,6 +215,7 @@
             for (let i = 0; i < maxWords; i++) {
                 const possibilities = weights[currentWord];
                 if (!possibilities || possibilities.length === 0) break;
+                
                 const nextWord = possibilities[Math.floor(Math.random() * possibilities.length)];
                 resultChain.push(nextWord);
                 currentWord = nextWord;
@@ -204,7 +225,6 @@
             return finalSentence.charAt(0).toUpperCase() + finalSentence.slice(1) + '.';
         }
 
-        // ================= ТЕХНОЛОГИЯ СТРИМИНГА (ПОШАГОВАЯ ПЕЧАТЬ) =================
         async function printResponseByWords(element, prefix, fullText) {
             element.innerHTML = `<strong>${prefix}</strong><br><p></p>`;
             const pElement = element.querySelector('p');
@@ -212,10 +232,8 @@
 
             for (let word of words) {
                 pElement.innerHTML += word + ' ';
-                // Авто-скролл вниз при появлении каждого нового слова
                 document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
-                // Задержка в 80 миллисекунд между словами для эффекта генерации
-                await new Promise(resolve => setTimeout(resolve, 80));
+                await new Promise(resolve => setTimeout(resolve, 60)); // Чуть ускорил печать (60мс)
             }
         }
 
@@ -234,38 +252,44 @@
 
             const aiDiv = document.createElement('div');
             aiDiv.className = 'message ai-message';
-            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Анализ токенов матрицы...</span>`;
+            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Анализ структуры запроса...</span>`;
             chatArea.appendChild(aiDiv);
             chatArea.scrollTop = chatArea.scrollHeight;
 
+            // 1. Вычищаем ядро запроса (например: "что такое попугай" -> "попугай")
+            const coreTopic = extractCoreTopic(userRawText);
             const weights = JSON.parse(localStorage.getItem('ai_weights'));
-            const words = userRawText.toLowerCase().split(/\s+/);
-            const lastWord = words[words.length - 1];
 
-            if (weights[lastWord]) {
-                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">СИНТЕЗ</b>`;
+            // Разбираем очищенную тему на отдельные слова
+            const coreWords = coreTopic.split(/\s+/);
+            const lastCoreWord = coreWords[coreWords.length - 1];
+
+            // 2. Проверяем, знакомо ли нам ключевое слово
+            if (lastCoreWord && weights[lastCoreWord]) {
+                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">ЛОКАЛЬНЫЙ СИНТЕЗ</b>`;
+                await new Promise(resolve => setTimeout(resolve, 300));
                 
-                // Эмуляция размышления перед началом печати
-                await new Promise(resolve => setTimeout(resolve, 400));
-                
-                const generatedOutput = generateTextFromWeights(userRawText);
-                // Запуск живой печати
-                await printResponseByWords(aiDiv, "UINEEX Ai (Локальный Синтез):", generatedOutput);
-                
+                const generatedOutput = generateTextFromWeights(coreTopic);
+                await printResponseByWords(aiDiv, "UINEEX Ai:", generatedOutput);
             } else {
-                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#e9ae45;">ОБУЧЕНИЕ...</b>`;
-                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Ищу тексты и подгоняю веса для темы "${userRawText}"...</span>`;
+                // Если слово абсолютно новое
+                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#e9ae45;">СКАЧИВАНИЕ ТОКЕНОВ...</b>`;
+                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Загружаю базу данных по теме "${coreTopic || userRawText}"...</span>`;
 
-                const freshText = await fetchLearningData(userRawText);
+                // Ищем в Википедии ЧИСТУЮ тему ("попугай"), а не весь вопрос целиком
+                const freshText = await fetchLearningData(coreTopic || userRawText);
 
                 if (freshText) {
+                    document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#569cd6;">ПОДГОНКА ВЕСОВ...</b>`;
                     trainModelOnText(freshText);
-                    const generatedOutput = generateTextFromWeights(userRawText);
                     
-                    // Печать свежевыученного текста
-                    await printResponseByWords(aiDiv, "UINEEX Ai (Свежие веса матрицы):", generatedOutput);
+                    const generatedOutput = generateTextFromWeights(coreTopic);
+                    await printResponseByWords(aiDiv, `UINEEX Ai (Успешно выучено "${coreTopic.toUpperCase()}"):`, generatedOutput);
                 } else {
-                    aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><p>Я не знаю слова "${userRawText}" и не смог найти обучающих текстов в сети. Давай попробуем другую тему!</p>`;
+                    // Если даже Википедия бессильна
+                    document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#a12626;">ОТКАЗ</b>`;
+                    const fallback = generateTextFromWeights(userRawText);
+                    await printResponseByWords(aiDiv, "UINEEX Ai (Свободное мышление):", fallback);
                 }
             }
             
