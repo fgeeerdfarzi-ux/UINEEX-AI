@@ -181,21 +181,29 @@
         }
 
         // ================= ИНТЕГРАЦИЯ POLLINATIONS AI =================
-        async function fetchFromPollinations(promptTopic) {
-            // Формируем системную инструкцию для нейросети, чтобы ответ был емким и удобным для нашего парсера весов
-            const systemInstructions = "Ты — продвинутый ИИ-движок для системы UINEEX Ai. Дай понятный, интересный и структурированный ответ на русском языке. Пиши без разметки markdown (без звездочек и решеток), только чистый текст.";
-            
-            const url = `https://text.pollinations.ai/${encodeURIComponent(promptTopic)}?system=${encodeURIComponent(systemInstructions)}`;
-            
-            try {
-                const response = await fetch(url);
-                if (!response.ok) return null;
-                const aiText = await response.text();
-                return aiText.trim();
-            } catch (e) {
-                return null;
-            }
+async function fetchFromPollinations(promptTopic) {
+    // Накладываем жесткое ограничение на длину ответа и запрещаем списки
+    const systemInstructions = "Ты — движок UINEEX Ai. Отвечай СТРОГО кратко и лаконично, максимум 2-3 коротких предложения. Выдавай только суть. Без списков, без лишней болтовни и без разметки markdown.";
+    
+    const url = `https://text.pollinations.ai/${encodeURIComponent(promptTopic)}?system=${encodeURIComponent(systemInstructions)}`;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const aiText = await response.text();
+        
+        // Дополнительная страховка: если облако всё равно прислало гигантский текст, 
+        // мы принудительно обрезаем его до первых 40 слов, чтобы чат не зависал на бесконечной печати
+        const words = aiText.trim().split(/\s+/);
+        if (words.length > 40) {
+            return words.slice(0, 40).join(' ') + '...';
         }
+        
+        return aiText.trim();
+    } catch (e) {
+        return null;
+    }
+}
 
         // Локальный генератор по весам
         function generateTextFromWeights(startPhrase, maxWords = 30) {
