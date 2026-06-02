@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UINEEX Ai - Самообучающийся Трансформер</title>
+    <title>UINEEX Ai - Живая Генерация</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -96,21 +96,21 @@
         <div class="panel-box">
             <h3>📊 Вероятностная Матрица</h3>
             <div class="status" id="matrixStatus">Параметры: 0 токенов</div>
-            <button id="clearWeightsBtn" style="width:100%; margin-top:10px; padding:4px; font-size:11px; background-color:#a12626;">Сбросить веса</button>
+            <button id="clearWeightsBtn" style="width:100%; margin-top:10px; padding:4px; font-size:11px; background-color:#a12626; border:none; color:white; border-radius:4px; cursor:pointer;">Сбросить веса</button>
         </div>
 
         <div class="panel-box">
             <h3>🧠 Состояние системы</h3>
-            <div class="status" id="debugStatus">Режим: Ожидание запроса</div>
+            <div class="status" id="debugStatus">Режим: Ожидание</div>
         </div>
     </div>
 
     <div class="main-container">
         <div class="chat-area" id="chatArea">
             <div class="message ai-message">
-                Привет! Я активировал режим **Автономного Самообучения**.
+                Привет! Я активировал функцию **Потокового Вывода Текста**. 
                 <br><br>
-                Напиши мне абсолютно любую тему (даже ту, которую я не знаю). Если моих 659 токенов о природе не хватит, я сам скачаю новые знания, обучусь им за секунду и отвечу тебе!
+                Теперь мои ответы генерируются пошагово прямо у тебя на глазах. Задай мне вопрос, чтобы увидеть, как работает живой синтез весов!
             </div>
         </div>
 
@@ -121,7 +121,6 @@
     </div>
 
     <script>
-        // Инициализация базы весов слов
         if(!localStorage.getItem('ai_weights')) {
             localStorage.setItem('ai_weights', JSON.stringify({}));
         }
@@ -134,34 +133,26 @@
             document.getElementById('matrixStatus').innerHTML = `В базе параметров: <b>${totalLinks} уникальных слов</b>`;
         }
 
-        // Очистка весов при необходимости
         document.getElementById('clearWeightsBtn').addEventListener('click', () => {
             if(confirm("Вы уверены, что хотите стереть все выученные токены?")) {
                 localStorage.setItem('ai_weights', JSON.stringify({}));
-                updateMatrixStatus();
                 location.reload();
             }
         });
 
-        // Функция токенизации и подгонки весов (Обучение)
         function trainModelOnText(text) {
             const words = text.toLowerCase()
                 .replace(/[^a-zа-яё0-9\s]/g, ' ')
                 .split(/\s+/)
-                .filter(w => w.length > 1); // Игнорируем слишком мелкие предлоги
+                .filter(w => w.length > 1);
 
             if(words.length < 2) return false;
-
             const weights = JSON.parse(localStorage.getItem('ai_weights'));
 
             for (let i = 0; i < words.length - 1; i++) {
                 const currentWord = words[i];
                 const nextWord = words[i + 1];
-
-                if (!weights[currentWord]) {
-                    weights[currentWord] = [];
-                }
-                // Накапливаем веса связей слов
+                if (!weights[currentWord]) weights[currentWord] = [];
                 weights[currentWord].push(nextWord);
             }
 
@@ -170,7 +161,6 @@
             return true;
         }
 
-        // Функция онлайн-поиска текста для обучения
         async function fetchLearningData(topic) {
             const searchUrl = `https://ru.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(topic)}&limit=1&format=json&origin=*`;
             try {
@@ -183,27 +173,20 @@
                 
                 const contentResponse = await fetch(contentUrl);
                 const contentData = await contentResponse.json();
-                const pages = contentData.query.pages;
-                const pageId = Object.keys(pages)[0];
-                
-                if (pageId === "-1") return null;
-                return pages[pageId].extract;
+                return contentData.query.pages[Object.keys(contentData.query.pages)[0]].extract;
             } catch (e) {
                 return null;
             }
         }
 
-        // Генератор текста по весам слов
-        function generateTextFromWeights(startPhrase, maxWords = 25) {
+        function generateTextFromWeights(startPhrase, maxWords = 30) {
             const weights = JSON.parse(localStorage.getItem('ai_weights'));
             const inputWords = startPhrase.toLowerCase().replace(/[^a-zа-яё0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 0);
+            let currentWord = inputWords[inputWords.length - 1];
             
-            let currentWord = inputWords[inputWords.length - 1]; // Точка входа — последнее слово юзера
-            
-            // Если ИИ вообще не знает этого слова, берем любое случайное из базы, чтобы не ломаться
             if (!weights[currentWord]) {
                 const allKeys = Object.keys(weights);
-                if(allKeys.length === 0) return "Моя матрица пуста.";
+                if(allKeys.length === 0) return null;
                 currentWord = allKeys[Math.floor(Math.random() * allKeys.length)];
             }
 
@@ -212,8 +195,6 @@
             for (let i = 0; i < maxWords; i++) {
                 const possibilities = weights[currentWord];
                 if (!possibilities || possibilities.length === 0) break;
-
-                // Случайный выбор следующего слова на основе накопленной частоты (имитация температуры)
                 const nextWord = possibilities[Math.floor(Math.random() * possibilities.length)];
                 resultChain.push(nextWord);
                 currentWord = nextWord;
@@ -221,6 +202,21 @@
 
             let finalSentence = resultChain.join(' ');
             return finalSentence.charAt(0).toUpperCase() + finalSentence.slice(1) + '.';
+        }
+
+        // ================= ТЕХНОЛОГИЯ СТРИМИНГА (ПОШАГОВАЯ ПЕЧАТЬ) =================
+        async function printResponseByWords(element, prefix, fullText) {
+            element.innerHTML = `<strong>${prefix}</strong><br><p></p>`;
+            const pElement = element.querySelector('p');
+            const words = fullText.split(' ');
+
+            for (let word of words) {
+                pElement.innerHTML += word + ' ';
+                // Авто-скролл вниз при появлении каждого нового слова
+                document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+                // Задержка в 80 миллисекунд между словами для эффекта генерации
+                await new Promise(resolve => setTimeout(resolve, 80));
+            }
         }
 
         async function sendMessage() {
@@ -238,7 +234,7 @@
 
             const aiDiv = document.createElement('div');
             aiDiv.className = 'message ai-message';
-            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Анализ токенов...</span>`;
+            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Анализ токенов матрицы...</span>`;
             chatArea.appendChild(aiDiv);
             chatArea.scrollTop = chatArea.scrollHeight;
 
@@ -246,38 +242,34 @@
             const words = userRawText.toLowerCase().split(/\s+/);
             const lastWord = words[words.length - 1];
 
-            // ПРОВЕРКА: Знает ли ИИ это слово?
             if (weights[lastWord]) {
-                // Если знает — мгновенно строит предложение на старых весах
-                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">ЛОКАЛЬНЫЙ СИНТЕЗ</b>`;
-                setTimeout(() => {
-                    const generatedOutput = generateTextFromWeights(userRawText);
-                    aiDiv.innerHTML = `<strong>UINEEX Ai (На старых весах):</strong><br><p>${generatedOutput}</p>`;
-                    document.getElementById('debugStatus').innerText = "Режим: Ожидание";
-                    chatArea.scrollTop = chatArea.scrollHeight;
-                }, 500);
+                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">СИНТЕЗ</b>`;
+                
+                // Эмуляция размышления перед началом печати
+                await new Promise(resolve => setTimeout(resolve, 400));
+                
+                const generatedOutput = generateTextFromWeights(userRawText);
+                // Запуск живой печати
+                await printResponseByWords(aiDiv, "UINEEX Ai (Локальный Синтез):", generatedOutput);
+                
             } else {
-                // Если слово новое — включается экстренное авто-обучение!
-                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#e9ae45;">АВТО-ОБУЧЕНИЕ...</b>`;
-                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Изучаю новые токены по теме "${userRawText}"...</span>`;
+                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#e9ae45;">ОБУЧЕНИЕ...</b>`;
+                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Ищу тексты и подгоняю веса для темы "${userRawText}"...</span>`;
 
                 const freshText = await fetchLearningData(userRawText);
 
                 if (freshText) {
-                    // Обучаем матрицу новой статьей на лету!
                     trainModelOnText(freshText);
-                    
-                    // Генерируем ответ уже на основе СВЕЖИХ только что полученных весов
                     const generatedOutput = generateTextFromWeights(userRawText);
-                    aiDiv.innerHTML = `<strong>UINEEX Ai (Свежеобученная модель):</strong><br><p>${generatedOutput}</p>`;
+                    
+                    // Печать свежевыученного текста
+                    await printResponseByWords(aiDiv, "UINEEX Ai (Свежие веса матрицы):", generatedOutput);
                 } else {
-                    // Если тему даже в сети не найти
-                    aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><p>Я не знаю слова "${userRawText}" и не смог найти текстов в сети, чтобы обучить свои веса. Давай сменим тему!</p>`;
+                    aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><p>Я не знаю слова "${userRawText}" и не смог найти обучающих текстов в сети. Давай попробуем другую тему!</p>`;
                 }
-                
-                document.getElementById('debugStatus').innerText = "Режим: Ожидание";
-                chatArea.scrollTop = chatArea.scrollHeight;
             }
+            
+            document.getElementById('debugStatus').innerText = "Режим: Ожидание";
         }
 
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
