@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UINEEX Ai - Автономный ИИ</title>
+    <title>UINEEX Ai - Контекстный ИИ</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -45,16 +45,6 @@
             color: #4fc1ff;
         }
 
-        input[type="text"] {
-            width: 90%;
-            padding: 8px;
-            background-color: #1e1e1e;
-            border: 1px solid #3c3c3c;
-            color: white;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-
         /* Главная зона */
         .main-container {
             flex: 1;
@@ -81,7 +71,6 @@
         .user-message { background-color: #2d2d2d; align-self: flex-end; border: 1px solid #3c3c3c; }
         .ai-message { background-color: #252526; align-self: flex-start; border: 1px solid #3c3c3c; width: 95%; }
 
-        /* Стиль для режима размышления */
         .thinking {
             color: #858585;
             font-style: italic;
@@ -136,34 +125,37 @@
     <div class="sidebar">
         <div>
             <div class="logo">UINEEX Ai</div>
-            <div style="text-align:center; font-size:12px; color:#888;">Версия 1.2 (Авто-поиск)</div>
+            <div style="text-align:center; font-size:12px; color:#888;">Версия 1.3 (Память контекста)</div>
         </div>
 
         <div class="train-section">
             <h3>Статус базы знаний</h3>
             <div class="status" id="trainStatus">Загрузка памяти...</div>
+            <div class="status" id="contextStatus" style="margin-top:10px; color:#569cd6;">В фокусе: нет темы</div>
         </div>
 
-        <div style="margin-top: auto; font-size: 11px; color: #555;">Полная автономия без API</div>
+        <div style="margin-top: auto; font-size: 11px; color: #555;">Фишка: Напиши "подробно" после вопроса</div>
     </div>
 
     <div class="main-container">
         <div class="chat-area" id="chatArea">
             <div class="message ai-message">
-                Привет! Я <strong>UINEEX Ai</strong>. Теперь я полностью автономен! 
+                Привет! Я <strong>UINEEX Ai</strong>. Теперь я умею удерживать нить разговора!
                 <br><br>
-                Просто спроси меня о чём угодно. Если я чего-то не знаю, я включу режим <strong>Thinking...</strong>, сам найду инфу в сети, занесу в память и объясню тебе!
+                Спроси меня о чём угодно. А если захочешь узнать больше деталей, просто напиши следующим сообщением: <strong>"подробно"</strong> или <strong>"расскажи подробнее"</strong>.
             </div>
         </div>
 
         <div class="input-area">
-            <textarea id="userInput" placeholder="Спроси меня о чём-то (например: что такое HTML)..."></textarea>
+            <textarea id="userInput" placeholder="Например: Кто такой Илон Маск? а затем: подробнее..."></textarea>
             <button id="sendBtn">Запуск</button>
         </div>
     </div>
 
     <script>
-        // Инициализация памяти при старте страницы
+        // ГЛОБАЛЬНЫЙ КОНТЕКСТ: ИИ помнит, о чём идёт речь прямо сейчас
+        let currentSessionTopic = "";
+
         if(!localStorage.getItem('ai_brain')) {
             localStorage.setItem('ai_brain', JSON.stringify({}));
         }
@@ -174,60 +166,73 @@
             const brain = JSON.parse(localStorage.getItem('ai_brain'));
             const topics = Object.keys(brain);
             const statusText = document.getElementById('trainStatus');
+            const contextText = document.getElementById('contextStatus');
+
             if(topics.length > 0) {
-                statusText.innerHTML = `ИИ уже помнит тем: <b>${topics.length}</b><br><span style="font-size:11px; color:#777;">(${topics.slice(-3).join(', ')}...)</span>`;
+                statusText.innerHTML = `ИИ помнит тем: <b>${topics.length}</b>`;
             } else {
-                statusText.innerText = "Память пуста. Спроси меня о чем-то, чтобы я начал учиться!";
+                statusText.innerText = "Память пуста.";
+            }
+
+            if(currentSessionTopic) {
+                contextText.innerHTML = `В фокусе разговора:<br><b style="color:#4fc1ff;">${currentSessionTopic.toUpperCase()}</b>`;
+            } else {
+                contextText.innerText = "В фокусе: нет темы";
             }
         }
 
-        // Очистка запроса от мусорных фраз
+        // Очистка запроса от мусора
         function cleanQuery(query) {
             return query
                 .replace(/(что такое|кто такой|расскажи про|расскажи о|кто такая|что за|знаешь ли ты)/gi, '')
                 .trim();
         }
 
-        // Функция «пересказа своими словами»
-        function rephraseAI(rawText, topicName) {
+        // Функция краткого пересказа (первые 3 предложения)
+        function rephraseBriefAI(rawText, topicName) {
             let sentences = rawText.split(/[.!?]\s+/);
             let coreInfo = sentences.slice(0, 3).join('. ');
             if (!coreInfo.endsWith('.')) coreInfo += '.';
 
             const intros = [
-                `Слушай, я изучил свои архивы по теме <strong>${topicName}</strong>. Если на пальцах, то `,
-                `А, <strong>${topicName}</strong>! Смотри, я разобрался. Короче говоря: `,
-                `Вот как я это понимаю. Если отбросить тонну скучного текста, то <strong>${topicName}</strong> — это `,
-                `По моим свежим данным, `
+                `Слушай, глянул в базу по теме <strong>${topicName}</strong>. Коротко говоря: `,
+                `А, <strong>${topicName}</strong>! Вот краткая суть: `,
+                `Если не вдаваться в дебри, то <strong>${topicName}</strong> — это `
             ];
-
-            const outros = [
-                ` Надеюсь, теперь суть понятна!`,
-                ` В общем, штука полезная, если вариться в этой теме.`,
-                ` Если нужно копнуть глубже — маякни, раскопаю подробности.`
-            ];
-
             const randomIntro = intros[Math.floor(Math.random() * intros.length)];
-            const randomOutro = outros[Math.floor(Math.random() * outros.length)];
-
-            return `${randomIntro}${coreInfo}${randomOutro}`;
+            return `${randomIntro}${coreInfo}<br><br><span style="color:#888; font-size:12px;">💡 Напиши "подробно", если хочешь узнать больше деталей.</span>`;
         }
 
-        // Функция автоматического поиска статьи на Википедии
-        async function autoSearchWikipedia(cleanedTopic) {
-            // Шаг 1: Ищем точное название статьи через OpenSearch
-            const searchUrl = `https://ru.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(cleanedTopic)}&limit=1&format=json&origin=*`;
+        // Функция детального разбора (всё, что идёт после 3-го предложения)
+        function rephraseDetailedAI(rawText, topicName) {
+            let sentences = rawText.split(/[.!?]\s+/);
             
+            // Если текст и так был слишком короткий
+            if (sentences.length <= 3) {
+                return `Я просканировал всю доступную информацию о <strong>${topicName}</strong>, и это весь максимум, который удалось найти в энциклопедии. Дополнительных скрытых деталей пока нет!`;
+            }
+
+            let detailedInfo = sentences.slice(3).join('. ');
+            if (!detailedInfo.endsWith('.')) detailedInfo += '.';
+
+            const intros = [
+                `Разворачиваю архивные данные по теме <strong>${topicName}</strong>. Вот что ещё важно знать: `,
+                `Без проблем, давай углубимся в <strong>${topicName}</strong>. Лови подробности: `,
+                `Хорошо, давай разберем детали. Вот расширенная информация: `
+            ];
+            const randomIntro = intros[Math.floor(Math.random() * intros.length)];
+            return `${randomIntro}${detailedInfo}`;
+        }
+
+        // Авто-поиск Википедии
+        async function autoSearchWikipedia(cleanedTopic) {
+            const searchUrl = `https://ru.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(cleanedTopic)}&limit=1&format=json&origin=*`;
             try {
                 const searchResponse = await fetch(searchUrl);
                 const searchData = await searchResponse.json();
-                
-                // Если ничего не нашли в поиске
                 if (!searchData[1] || searchData[1].length === 0) return null;
                 
-                const exactTitle = searchData[1][0]; // Самое точное совпадение названия
-
-                // Шаг 2: Выкачиваем текст этой статьи
+                const exactTitle = searchData[1][0];
                 const contentUrl = `https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(exactTitle)}&format=json&origin=*`;
                 
                 const contentResponse = await fetch(contentUrl);
@@ -237,17 +242,14 @@
                 
                 if (pageId === "-1") return null;
 
-                return {
-                    title: exactTitle,
-                    text: pages[pageId].extract
-                };
+                return { title: exactTitle, text: pages[pageId].extract };
             } catch (e) {
-                console.error("Ошибка при авто-поиске:", e);
+                console.error(e);
                 return null;
             }
         }
 
-        // Главная логика чата
+        // Главный движок чата
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const chatArea = document.getElementById('chatArea');
@@ -256,28 +258,50 @@
             
             if (query === '') return;
 
-            // Отображаем сообщение пользователя
+            // Отображаем сообщение юзера
             const userDiv = document.createElement('div');
             userDiv.className = 'message user-message';
             userDiv.textContent = userRawText;
             chatArea.appendChild(userDiv);
-
-            // Очищаем поле ввода сразу
             input.value = '';
 
-            // Создаем блок ответа ИИ, но пока вешаем туда "Thinking..."
+            // Создаем блок ответа ИИ с анимацией размышления
             const aiDiv = document.createElement('div');
             aiDiv.className = 'message ai-message';
             aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Thinking...</span>`;
             chatArea.appendChild(aiDiv);
             chatArea.scrollTop = chatArea.scrollHeight;
 
-            // Ищем в локальной памяти
+            // ПРОВЕРКА КОМАНДЫ НА ПОДРОБНОСТИ
+            const isDetailRequest = /(подробн|еще|ещё|распиши|поподробнее|детал)/gi.test(query);
+
+            if (isDetailRequest) {
+                if (currentSessionTopic) {
+                    const brain = JSON.parse(localStorage.getItem('ai_brain'));
+                    const fullText = brain[currentSessionTopic];
+                    
+                    setTimeout(() => {
+                        const aiDetailedAnswer = rephraseDetailedAI(fullText, currentSessionTopic.toUpperCase());
+                        aiDiv.innerHTML = `<strong>UINEEX Ai (Детализация):</strong><br><p>${aiDetailedAnswer}</p>`;
+                        chatArea.scrollTop = chatArea.scrollHeight;
+                    }, 500);
+                    return;
+                } else {
+                    setTimeout(() => {
+                        aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br>Подробнее о чём? Мы пока ещё ни о чём не говорили. Спроси меня сначала какую-нибудь тему!`;
+                        chatArea.scrollTop = chatArea.scrollHeight;
+                    }, 400);
+                    return;
+                }
+            }
+
+            // ЕСЛИ ЭТО НОВЫЙ ВОПРОС
+            const cleaned = cleanQuery(query);
             const brain = JSON.parse(localStorage.getItem('ai_brain'));
             let foundKnowledge = null;
             let matchedTopic = "";
-            const cleaned = cleanQuery(query);
 
+            // Ищем в локальной базе
             for (let key in brain) {
                 if (cleaned.includes(key) || key.includes(cleaned)) {
                     foundKnowledge = brain[key];
@@ -286,37 +310,38 @@
                 }
             }
 
-            // Если нашли в памяти — выдаем ответ сразу
             if (foundKnowledge) {
+                currentSessionTopic = matchedTopic; // Запомнили контекст беседы!
+                updateStatus();
                 setTimeout(() => {
-                    const aiExplanation = rephraseAI(foundKnowledge, matchedTopic.toUpperCase());
+                    const aiExplanation = rephraseBriefAI(foundKnowledge, matchedTopic.toUpperCase());
                     aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><p>${aiExplanation}</p>`;
                     chatArea.scrollTop = chatArea.scrollHeight;
-                }, 600); // Небольшая задержка для реализма
+                }, 500);
                 return;
             }
 
-            // ЕСЛИ НЕ НАШЛИ: Включается авто-поиск в сети!
+            // Если в базе нет — идем парсить сеть
             const searchResult = await autoSearchWikipedia(cleaned);
 
             if (searchResult && searchResult.text.trim() !== "") {
-                // Сохраняем новую тему в память
-                brain[searchResult.title.toLowerCase()] = searchResult.text;
+                const lowerTitle = searchResult.title.toLowerCase();
+                brain[lowerTitle] = searchResult.text;
                 localStorage.setItem('ai_brain', JSON.stringify(brain));
+                
+                currentSessionTopic = lowerTitle; // Запомнили контекст беседы!
                 updateStatus();
 
-                // Обновляем текст "Thinking..." на готовый пересказ
-                const aiExplanation = rephraseAI(searchResult.text, searchResult.title.toUpperCase());
-                aiDiv.innerHTML = `<strong>UINEEX Ai (Свежие данные из сети):</strong><br><p>${aiExplanation}</p>`;
+                const aiExplanation = rephraseBriefAI(searchResult.text, searchResult.title.toUpperCase());
+                aiDiv.innerHTML = `<strong>UINEEX Ai (Свежие данные):</strong><br><p>${aiExplanation}</p>`;
             } else {
-                // Если и в Википедии глухо
-                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br>Я честно поискал в сети по запросу "${cleaned}", но даже там ничего толкового не нашлось. Попробуй перефразировать тему!`;
+                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br>Я поискал в сети по запросу "${cleaned}", но ничего толкового не нашёл. Попробуй задать вопрос иначе!`;
             }
             
             chatArea.scrollTop = chatArea.scrollHeight;
         }
 
-        // Кнопка и Enter
+        // Триггеры
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
         document.getElementById('userInput').addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
