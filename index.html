@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UINEEX Ai - Генеративный Мобильный ИИ</title>
+    <title>UINEEX Ai - Матричный Интеллект</title>
     <style>
-        /* Основная палитра в строгих серых тонах */
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             background-color: #1e1e1e;
@@ -13,50 +12,33 @@
             margin: 0;
             display: flex;
             height: 100vh;
-            flex-direction: row;
         }
 
-        /* Боковая панель (для ПК) */
         .sidebar {
-            width: 280px;
+            width: 300px;
             background-color: #252526;
             border-right: 1px solid #3c3c3c;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
             box-sizing: border-box;
+            overflow-y: auto;
         }
 
-        .logo {
-            font-size: 22px;
-            font-weight: bold;
-            color: #569cd6;
-            text-align: center;
-        }
+        .logo { font-size: 22px; font-weight: bold; color: #569cd6; text-align: center; }
 
-        .train-section {
+        .panel-box {
             background-color: #2d2d2d;
-            padding: 15px;
+            padding: 12px;
             border-radius: 6px;
             border: 1px solid #3c3c3c;
         }
 
-        .train-section h3 {
-            margin-top: 0;
-            font-size: 14px;
-            color: #4fc1ff;
-        }
+        .panel-box h3 { margin-top: 0; font-size: 13px; color: #4fc1ff; }
 
-        /* Главная рабочая зона */
-        .main-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
+        .main-container { flex: 1; display: flex; flex-direction: column; height: 100vh; }
 
-        /* Окно чата */
         .chat-area {
             flex: 1;
             padding: 20px;
@@ -67,264 +49,166 @@
             background-color: #1e1e1e;
         }
 
-        .message {
-            padding: 15px;
-            border-radius: 6px;
-            max-width: 85%;
-            line-height: 1.5;
-            word-wrap: break-word;
-        }
+        .message { padding: 15px; border-radius: 6px; max-width: 85%; line-height: 1.5; word-wrap: break-word; }
+        .user-message { background-color: #2d2d2d; align-self: flex-end; border: 1px solid #3c3c3c; }
+        .ai-message { background-color: #252526; align-self: flex-start; border: 1px solid #3c3c3c; width: 95%; box-sizing: border-box; }
 
-        .user-message { 
-            background-color: #2d2d2d; 
-            align-self: flex-end; 
-            border: 1px solid #3c3c3c; 
-        }
-        
-        .ai-message { 
-            background-color: #252526; 
-            align-self: flex-start; 
-            border: 1px solid #3c3c3c; 
-            width: 95%; 
-            box-sizing: border-box;
-        }
+        .thinking { color: #858585; font-style: italic; animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-        /* Анимация Thinking... */
-        .thinking {
-            color: #858585;
-            font-style: italic;
-            animation: blink 1.5s infinite;
-        }
+        .input-area { padding: 15px; background-color: #252526; border-top: 1px solid #3c3c3c; display: flex; gap: 10px; }
 
-        @keyframes blink {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
-        }
-
-        /* Панель ввода (оптимизирована под пальцы) */
-        .input-area {
-            padding: 15px;
-            background-color: #252526;
-            border-top: 1px solid #3c3c3c;
-            display: flex;
-            gap: 10px;
-            box-sizing: border-box;
-        }
-
-        textarea {
-            flex: 1;
-            height: 46px;
+        textarea, text-dataset {
+            width: 100%;
             background-color: #2d2d2d;
             border: 1px solid #3c3c3c;
-            border-radius: 6px;
+            border-radius: 4px;
             color: #fff;
-            padding: 12px;
-            resize: none;
+            padding: 8px;
             font-family: inherit;
-            font-size: 16px; /* Предотвращает авто-зум в iOS */
             box-sizing: border-box;
+            resize: none;
         }
 
-        textarea:focus { outline: 1px solid #569cd6; }
+        textarea { height: 46px; font-size: 16px; }
+        #rawTextDataset { height: 80px; font-size: 12px; margin-bottom: 8px; }
 
         button {
-            background-color: #0e639c;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 0 20px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 15px;
+            background-color: #0e639c; color: white; border: none; border-radius: 6px;
+            padding: 10px 15px; cursor: pointer; font-weight: bold;
         }
-
         button:hover { background-color: #1177bb; }
-        
-        .status { font-size: 12px; color: #aaaaaa; margin-top: 5px; }
+        .status { font-size: 11px; color: #aaaaaa; margin-top: 5px; }
 
-        /* ================= MOBILE INTERFACE (Адаптация для телефонов) ================= */
         @media (max-width: 768px) {
-            body {
-                flex-direction: column; /* Элементы встают друг под друга */
-            }
-
-            .sidebar {
-                width: 100%;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid #3c3c3c;
-                padding: 10px 15px;
-                flex-direction: row;
-                align-items: center;
-                justify-content: space-between;
-                gap: 10px;
-            }
-
-            .logo {
-                font-size: 18px;
-                text-align: left;
-            }
-
-            .train-section {
-                padding: 5px 10px;
-                border: none;
-                background: transparent;
-            }
-
-            .train-section h3 { display: none; } /* Прячем заголовки ради места */
-            
-            #trainStatus { display: none; } /* Экономим экран мобилки */
-            #contextStatus {
-                margin-top: 0;
-                font-size: 12px;
-                text-align: right;
-            }
-
-            .sidebar div style { display: none; }
-
-            .chat-area {
-                padding: 10px;
-            }
-
-            .message {
-                max-width: 90%;
-                padding: 12px;
-                font-size: 15px;
-            }
-
-            .input-area {
-                padding: 10px;
-            }
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #3c3c3c; padding: 10px; }
+            .panel-box { display: none; }
+            .chat-area { padding: 10px; }
         }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <div>
-            <div class="logo">UINEEX Ai</div>
+        <div class="logo">UINEEX Ai</div>
+        
+        <div class="panel-box">
+            <h3>🤖 1. Предварительное обучение</h3>
+            <p style="font-size:11px; color:#aaa; margin:0 0 8px 0;">Вставь текст (статью, реплики), чтобы ИИ выучил связи между словами:</p>
+            <textarea id="rawTextDataset" placeholder="Например: Кот сидел на коврике. Кот пил молоко. На коврике спала собака..."></textarea>
+            <button id="trainMatrixBtn" style="width:100%; padding: 6px 0; font-size:12px;">Запустить подгонку весов</button>
+            <div class="status" id="matrixStatus">Параметры: 0 связей</div>
         </div>
 
-        <div class="train-section">
-            <h3>Статус базы знаний</h3>
-            <div class="status" id="trainStatus">Загрузка...</div>
-            <div class="status" id="contextStatus">Фокус: пуст</div>
+        <div class="panel-box">
+            <h3>🧠 Текущий фокус</h3>
+            <div class="status" id="debugStatus">Режим: Ожидание</div>
         </div>
     </div>
 
     <div class="main-container">
         <div class="chat-area" id="chatArea">
             <div class="message ai-message">
-                Привет! Я <strong>UINEEX Ai</strong>. Теперь я полностью адаптирован под экраны телефонов и обзавёлся автономным генератором логики! 
+                Привет! Я перешёл на **Матричную модель генерации**. 
                 <br><br>
-                Если в энциклопедиях не будет точного ответа, я включу свои собственные алгоритмы рассуждения и составлю ответ сам. Спроси меня о чём угодно!
+                Теперь ты можешь лично провести моё **Предварительное обучение**! Вставь любой текст в поле слева и нажми кнопку. Я разберу структуру и попробую генерировать новые фразы, предсказывая слова на основе твоих данных.
             </div>
         </div>
 
         <div class="input-area">
-            <textarea id="userInput" placeholder="Задай вопрос..."></textarea>
+            <textarea id="userInput" placeholder="Напиши слово для запуска генерации..."></textarea>
             <button id="sendBtn">ИИ</button>
         </div>
     </div>
 
     <script>
-        let currentSessionTopic = "";
-
-        if(!localStorage.getItem('ai_brain')) {
-            localStorage.setItem('ai_brain', JSON.stringify({}));
+        // Инициализируем матрицу связей (весов слов) в памяти
+        if(!localStorage.getItem('ai_weights')) {
+            localStorage.setItem('ai_weights', JSON.stringify({}));
         }
-        
-        updateStatus();
 
-        function updateStatus() {
-            const brain = JSON.parse(localStorage.getItem('ai_brain'));
-            const topics = Object.keys(brain);
-            document.getElementById('trainStatus').innerHTML = `Учил тем: <b>${topics.length}</b>`;
+        updateMatrixStatus();
 
-            const contextText = document.getElementById('contextStatus');
-            if(currentSessionTopic) {
-                contextText.innerHTML = `Фокус: <b style="color:#4fc1ff;">${currentSessionTopic.toUpperCase()}</b>`;
-            } else {
-                contextText.innerText = "Фокус: нет темы";
+        function updateMatrixStatus() {
+            const weights = JSON.parse(localStorage.getItem('ai_weights'));
+            const totalLinks = Object.keys(weights).length;
+            document.getElementById('matrixStatus').innerHTML = `В базе параметров: <b>${totalLinks} токенов</b>`;
+        }
+
+        // ================= ЭТАП ОБУЧЕНИЯ (ПОДГОНКА ВЕСОВ) =================
+        document.getElementById('trainMatrixBtn').addEventListener('click', () => {
+            const text = document.getElementById('rawTextDataset').value.trim();
+            if(!text) return alert("Введите текст для обучения!");
+
+            // Превращаем текст в массив чистых слов (токенизация)
+            const words = text.toLowerCase()
+                .replace(/[^a-zа-яё0-9\s]/g, ' ')
+                .split(/\s+/)
+                .filter(w => w.length > 0);
+
+            if(words.length < 2) return alert("Текст слишком короткий для поиска закономерностей.");
+
+            const weights = JSON.parse(localStorage.getItem('ai_weights'));
+
+            // Идем по тексту и смотрим, какое слово идет за каким
+            for (let i = 0; i < words.length - 1; i++) {
+                const currentWord = words[i];
+                const nextWord = words[i + 1];
+
+                if (!weights[currentWord]) {
+                    weights[currentWord] = [];
+                }
+                // Добавляем связь (чем чаще слово повторяется, тем больше его "вес" в массиве)
+                weights[currentWord].push(nextWord);
             }
-        }
 
-        function cleanQuery(query) {
-            return query
-                .replace(/(что такое|кто такой|расскажи про|расскажи о|кто такая|что за|знаешь ли ты|а почему не|почему бы не|почему)/gi, '')
-                .trim();
-        }
+            localStorage.setItem('ai_weights', JSON.stringify(weights));
+            document.getElementById('rawTextDataset').value = '';
+            updateMatrixStatus();
+            alert("Этап предварительного обучения завершен! Модель обновила параметры.");
+        });
 
-        // --- МАТРИЦА ЛОГИЧЕСКОГО СИНТЕЗА (Генерация ответа без API) ---
-        function generateLogicalFallback(userRawText, cleanedWords) {
-            const lowerText = userRawText.toLowerCase();
-            // Выделяем ключевое финальное слово/субъект запроса
-            const words = cleanedWords.split(' ');
-            let subject = words[words.length - 1] || "этого направления";
+        // ================= ЭТАП ГЕНЕРАЦИИ (ПРЕДСКАЗАНИЕ СЛОВ) =================
+        function generateTextFromWeights(startPhrase, maxWords = 30) {
+            const weights = JSON.parse(localStorage.getItem('ai_weights'));
+            const inputWords = startPhrase.toLowerCase().split(/\s+/).filter(w => w.length > 0);
             
-            // Красиво убираем окончания для эффекта генерации (базовый стемминг)
-            if (subject.length > 4) {
-                subject = subject.replace(/(планетян|ами|ов|ам|ах|ы|а|я|е)$/gi, '... (и схожих факторов)');
-            }
-
-            // Сценарий 1: Вопрос "Почему"
-            if (lowerText.includes("почему") || lowerText.includes("зачем")) {
-                return `Вопрос о том, почему мы сталкиваемся с отсутствием или изменением в сфере <strong>${cleanedWords}</strong>, крайне глубок. Если разложить логически, тут играют роль два фактора: во-первых, наши текущие инструменты фиксации данных пока ограничены, а во-вторых, такие явления часто находятся за пределами стандартной логики систем. Мы строим гипотезы, но точный ответ пока скрыт из-за нехватки прямых улик.`;
-            }
+            // Берем последнее слово запроса пользователя как стартовую точку
+            let currentWord = inputWords[inputWords.length - 1];
             
-            // Сценарий 2: Вопрос "Как"
-            if (lowerText.includes("как") || lowerText.includes("сделать")) {
-                return `Чтобы разобраться, как взаимодействовать с процессами вроде <strong>${cleanedWords}</strong>, нужно отталкиваться от обратного: декомпозировать систему на мелкие шаги. Прямых инструкций в базе нет, но архитектурно это всегда решается через создание надёжного каркаса и постепенное добавление логических блоков проверки.`;
+            if (!weights[currentWord]) {
+                // Если этого слова ИИ не знает, берем случайное из известных ему
+                const allKeys = Object.keys(weights);
+                if(allKeys.length === 0) return null;
+                currentWord = allKeys[Math.floor(Math.random() * allKeys.length)];
             }
 
-            // Сценарий 3: Общий разговорный ответ
-            return `Насчёт темы "<strong>${userRawText}</strong>" у меня нет готовой жёсткой вырезки, но если рассуждать системно, этот концепт часто вызывает споры. Обычно люди делятся на два лагеря: одни ищут математические доказательства, другие опираются на косвенные теории. Я сохранил этот паттерн мышления и буду сопоставлять его с новыми данными!`;
-        }
+            let resultChain = [currentWord];
 
-        function rephraseBriefAI(rawText, topicName) {
-            let sentences = rawText.split(/[.!?]\s+/);
-            let coreInfo = sentences.slice(0, 3).join('. ');
-            if (!coreInfo.endsWith('.')) coreInfo += '.';
-            return `Я изучил базу по запросу <strong>${topicName}</strong>: ${coreInfo}<br><br><span style="color:#888; font-size:11px;">💡 Напиши "подробно", чтобы развернуть мысль.</span>`;
-        }
+            // Генерируем цепочку, угадывая следующее слово на основе весов
+            for (let i = 0; i < maxWords; i++) {
+                const possibilities = weights[currentWord];
+                
+                if (!possibilities || possibilities.length === 0) break;
 
-        function rephraseDetailedAI(rawText, topicName) {
-            let sentences = rawText.split(/[.!?]\s+/);
-            if (sentences.length <= 3) return `По теме <strong>${topicName}</strong> это весь базовый массив данных, который мне удалось структурировать.`;
-            return `Углубляюсь в детали по теме <strong>${topicName}</strong>. Вот расширенная аналитика: ${sentences.slice(3).join('. ')}`;
-        }
-
-        async function autoSearchWikipedia(cleanedTopic) {
-            if(!cleanedTopic || cleanedTopic.length < 2) return null;
-            const searchUrl = `https://ru.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(cleanedTopic)}&limit=1&format=json&origin=*`;
-            try {
-                const searchResponse = await fetch(searchUrl);
-                const searchData = await searchResponse.json();
-                if (!searchData[1] || searchData[1].length === 0) return null;
-                
-                const exactTitle = searchData[1][0];
-                const contentUrl = `https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(exactTitle)}&format=json&origin=*`;
-                
-                const contentResponse = await fetch(contentUrl);
-                const contentData = await contentResponse.json();
-                const pages = contentData.query.pages;
-                const pageId = Object.keys(pages)[0];
-                
-                if (pageId === "-1") return null;
-                return { title: exactTitle, text: pages[pageId].extract };
-            } catch (e) {
-                return null;
+                // Выбираем случайное слово из списка возможных продолжений (имитируем «температуру» модели)
+                const nextWord = possibilities[Math.floor(Math.random() * possibilities.length)];
+                resultChain.push(nextWord);
+                currentWord = nextWord; // Шагаем дальше
             }
+
+            // Форматируем красивый вывод
+            let finalSentence = resultChain.join(' ');
+            return finalSentence.charAt(0).toUpperCase() + finalSentence.slice(1) + '.';
         }
 
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const chatArea = document.getElementById('chatArea');
             const userRawText = input.value.trim();
-            const query = userRawText.toLowerCase();
             
-            if (query === '') return;
+            if (userRawText === '') return;
 
             const userDiv = document.createElement('div');
             userDiv.className = 'message user-message';
@@ -334,76 +218,23 @@
 
             const aiDiv = document.createElement('div');
             aiDiv.className = 'message ai-message';
-            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Thinking...</span>`;
+            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Thinking & Predicting...</span>`;
             chatArea.appendChild(aiDiv);
             chatArea.scrollTop = chatArea.scrollHeight;
 
-            const isDetailRequest = /(подробн|еще|ещё|распиши|детал)/gi.test(query);
+            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">ГЕНЕРАЦИЯ ВЕСОВ</b>`;
 
-            if (isDetailRequest && currentSessionTopic) {
-                const brain = JSON.parse(localStorage.getItem('ai_brain'));
-                const fullText = brain[currentSessionTopic];
-                
-                setTimeout(() => {
-                    if (fullText) {
-                        aiDiv.innerHTML = `<strong>UINEEX Ai (Детализация):</strong><br><p>${rephraseDetailedAI(fullText, currentSessionTopic.toUpperCase())}</p>`;
-                    } else {
-                        // Если контекст был сгенерирован логикой, а не скачан
-                        aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><p>В данном логическом размышлении мы уже затронули ключевые аспекты. Чтобы закопаться ещё глубже, задай более точечный вектор!</p>`;
-                    }
-                    chatArea.scrollTop = chatArea.scrollHeight;
-                }, 500);
-                return;
-            }
+            setTimeout(() => {
+                const generatedOutput = generateTextFromWeights(userRawText);
 
-            const cleaned = cleanQuery(query);
-            const brain = JSON.parse(localStorage.getItem('ai_brain'));
-            let foundKnowledge = null;
-            let matchedTopic = "";
-
-            for (let key in brain) {
-                if (cleaned && (cleaned.includes(key) || key.includes(cleaned))) {
-                    foundKnowledge = brain[key];
-                    matchedTopic = key;
-                    break;
+                if (generatedOutput) {
+                    aiDiv.innerHTML = `<strong>UINEEX Ai (Синтезировано весами):</strong><br><p>${generatedOutput}</p>`;
+                } else {
+                    aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br>Моя матрица параметров пуста. Пожалуйста, обучи меня, вставив текст в поле «Предварительное обучение» слева!`;
                 }
-            }
-
-            if (foundKnowledge) {
-                currentSessionTopic = matchedTopic;
-                updateStatus();
-                setTimeout(() => {
-                    aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><p>${rephraseBriefAI(foundKnowledge, matchedTopic.toUpperCase())}</p>`;
-                    chatArea.scrollTop = chatArea.scrollHeight;
-                }, 500);
-                return;
-            }
-
-            // Запуск поиска в сети
-            const searchResult = await autoSearchWikipedia(cleaned);
-
-            if (searchResult && searchResult.text.trim() !== "") {
-                const lowerTitle = searchResult.title.toLowerCase();
-                brain[lowerTitle] = searchResult.text;
-                localStorage.setItem('ai_brain', JSON.stringify(brain));
-                
-                currentSessionTopic = lowerTitle;
-                updateStatus();
-
-                aiDiv.innerHTML = `<strong>UINEEX Ai (Сеть):</strong><br><p>${rephraseBriefAI(searchResult.text, searchResult.title.toUpperCase())}</p>`;
-            } else {
-                // ВМЕСТО ОШИБКИ: Включаем кастомную генерацию ответа!
-                currentSessionTopic = cleaned; // Запоминаем как текстовый контекст
-                updateStatus();
-                
-                setTimeout(() => {
-                    const generatedAnswer = generateLogicalFallback(userRawText, cleaned);
-                    aiDiv.innerHTML = `<strong>UINEEX Ai (Логический Синтез):</strong><br><p>${generatedAnswer}</p>`;
-                    chatArea.scrollTop = chatArea.scrollHeight;
-                }, 600);
-            }
-            
-            chatArea.scrollTop = chatArea.scrollHeight;
+                document.getElementById('debugStatus').innerText = "Режим: Ожидание";
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }, 800);
         }
 
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
