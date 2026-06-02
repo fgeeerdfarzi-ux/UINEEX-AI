@@ -242,64 +242,81 @@
         }
 
         async function sendMessage() {
-            const input = document.getElementById('userInput');
-            const chatArea = document.getElementById('chatArea');
-            const userRawText = input.value.trim();
-            
-            if (userRawText === '') return;
+    const input = document.getElementById('userInput');
+    const chatArea = document.getElementById('chatArea');
+    const userRawText = input.value.trim();
+    
+    if (userRawText === '') return;
 
-            const userDiv = document.createElement('div');
-            userDiv.className = 'message user-message';
-            userDiv.textContent = userRawText;
-            chatArea.appendChild(userDiv);
-            input.value = '';
+    // Выводим сообщение пользователя в чат
+    const userDiv = document.createElement('div');
+    userDiv.className = 'message user-message';
+    userDiv.textContent = userRawText;
+    chatArea.appendChild(userDiv);
+    input.value = '';
 
-            const aiDiv = document.createElement('div');
-            aiDiv.className = 'message ai-message';
-            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Анализирую синтаксис...</span>`;
-            chatArea.appendChild(aiDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
+    // Создаем пустой блок для ответа ИИ
+    const aiDiv = document.createElement('div');
+    aiDiv.className = 'message ai-message';
+    aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Анализирую синтаксис...</span>`;
+    chatArea.appendChild(aiDiv);
+    chatArea.scrollTop = chatArea.scrollHeight;
 
-            // Применяем обновленный очиститель ("а что такое попугай" -> "попугай")
-            const coreTopic = extractCoreTopic(userRawText);
-            const weights = JSON.parse(localStorage.getItem('ai_weights'));
+    const lowerText = userRawText.toLowerCase();
 
-            const coreWords = coreTopic.split(/\s+/);
-            const lastCoreWord = coreWords[coreWords.length - 1];
+    // ================= ФИКС БАГА: ФИЛЬТР ПРИВЕТСТВИЙ (SMALL TALK) =================
+    // Если пользователь просто флудит или здоровается, отправляем напрямую в облако
+    const smallTalkWords = ['привет', 'как дела', 'ку', 'здравствуй', 'хай', 'че как', 'здарова', 'hello', 'hi'];
+    const isSmallTalk = smallTalkWords.some(word => lowerText.includes(word)) && userRawText.length < 20;
 
-            // Если слово уже железно выучено в локальной матрице весов
-            if (lastCoreWord && weights[lastCoreWord]) {
-                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">ЛОКАЛЬНЫЕ ВЕСА</b>`;
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                const generatedOutput = generateTextFromWeights(coreTopic);
-                await printResponseByWords(aiDiv, "UINEEX Ai (Синтез):", generatedOutput);
-            } else {
-                // Если тема абсолютно новая или искажённая союзами
-                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#e9ae45;">POLLINATIONS CLOUD</b>`;
-                aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Запрос к нейросетевому облаку по теме "${coreTopic || userRawText}"...</span>`;
-
-                // Тянем мощный интеллектуальный ответ из Pollinations AI
-                const aiCloudResponse = await fetchFromPollinations(coreTopic || userRawText);
-
-                if (aiCloudResponse) {
-                    document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#569cd6;">МАТРИЧНОЕ ОБУЧЕНИЕ</b>`;
-                    
-                    // Обучаем нашу локальную модель на этом умном тексте!
-                    trainModelOnText(aiCloudResponse);
-                    
-                    // Выводим крутой ответ от нейросети со стримингом
-                    await printResponseByWords(aiDiv, `UINEEX Ai (Интеллект Облака):`, aiCloudResponse);
-                } else {
-                    // Резервный режим, если упал интернет
-                    document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#a12626;">ОФФЛАЙН</b>`;
-                    const fallback = generateTextFromWeights(userRawText);
-                    await printResponseByWords(aiDiv, "UINEEX Ai (Локальный резерв):", fallback);
-                }
-            }
-            
-            document.getElementById('debugStatus').innerText = "Режим: Ожидание";
+    if (isSmallTalk) {
+        document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#bc74ff;">ЖИВОЙ ДИАЛОГ</b>`;
+        const cloudReply = await fetchFromPollinations(userRawText);
+        
+        if (cloudReply) {
+            await printResponseByWords(aiDiv, "UINEEX Ai:", cloudReply);
+        } else {
+            await printResponseByWords(aiDiv, "UINEEX Ai:", "Привет! У меня всё отлично, готов к работе. О чём поговорим?");
         }
+        document.getElementById('debugStatus').innerText = "Режим: Ожидание";
+        return; // Выходим из функции, чтобы не запускать обучение по Вите Исаеву!
+    }
+    // ==============================================================================
+
+    // Применяем очиститель для сложных вопросов
+    const coreTopic = extractCoreTopic(userRawText);
+    const weights = JSON.parse(localStorage.getItem('ai_weights'));
+
+    const coreWords = coreTopic.split(/\s+/);
+    const lastCoreWord = coreWords[coreWords.length - 1];
+
+    // Если слово уже выучено в локальной матрице весов
+    if (lastCoreWord && weights[lastCoreWord]) {
+        document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">ЛОКАЛЬНЫЕ ВЕСА</b>`;
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const generatedOutput = generateTextFromWeights(coreTopic);
+        await printResponseByWords(aiDiv, "UINEEX Ai (Синтез):", generatedOutput);
+    } else {
+        // Если тема абсолютно новая
+        document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#e9ae45;">POLLINATIONS CLOUD</b>`;
+        aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Запрос к нейросетевому облаку по теме "${coreTopic || userRawText}"...</span>`;
+
+        const aiCloudResponse = await fetchFromPollinations(coreTopic || userRawText);
+
+        if (aiCloudResponse) {
+            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#569cd6;">МАТРИЧНОЕ ОБУЧЕНИЕ</b>`;
+            trainModelOnText(aiCloudResponse);
+            await printResponseByWords(aiDiv, `UINEEX Ai:`, aiCloudResponse);
+        } else {
+            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#a12626;">ОФФЛАЙН</b>`;
+            const fallback = generateTextFromWeights(userRawText);
+            await printResponseByWords(aiDiv, "UINEEX Ai (Локальный резерв):", fallback);
+        }
+    }
+    
+    document.getElementById('debugStatus').innerText = "Режим: Ожидание";
+}
 
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
         document.getElementById('userInput').addEventListener('keydown', (event) => {
