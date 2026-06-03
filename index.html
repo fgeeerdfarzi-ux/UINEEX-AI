@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UINEEX Ai - Нейро-Облако v3.0</title>
+    <title>UINEEX Ai - Нейро-Пайплайн v4.0</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -100,7 +100,7 @@
         </div>
 
         <div class="panel-box">
-            <h3>🧠 Модуль Мышления</h3>
+            <h3>🧠 Режим Мышления</h3>
             <div class="status" id="debugStatus">Режим: Ожидание</div>
         </div>
     </div>
@@ -108,14 +108,14 @@
     <div class="main-container">
         <div class="chat-area" id="chatArea">
             <div class="message ai-message">
-                Привет! Я подключил нейросетевое облако **Pollinations AI**.
+                Привет! Архитектура **Нейро-Пайплайна** успешно развернута. 
                 <br><br>
-                Фикс лингвистики запущен! Теперь вопросы вида *"а что такое попугай"* обрабатываются идеально. Если я не знаю тему, я запрашиваю ответ у нейросети, выстраиваю живой стриминг слов и параллельно обучаю свою локальную матрицу!
+                Теперь я работаю так: сначала моя локальная матрица весов генерирует сырые мысли, а затем облако **Pollinations AI** выступает в роли главного редактора — оно берёт мой черновик и превращает его в идеальный ответ, попутно обучая локальную базу! Лишние союзы на входе больше ничего не ломают.
             </div>
         </div>
 
         <div class="input-area">
-            <textarea id="userInput" placeholder="Напиши: а что такое..."></textarea>
+            <textarea id="userInput" placeholder="Задай любой вопрос ИИ..."></textarea>
             <button id="sendBtn">ИИ</button>
         </div>
     </div>
@@ -140,25 +140,16 @@
             }
         });
 
-        // ================= ФИКС БАГА "А ЧТО ТАКОЕ" =================
+        // Улучшенный очиститель запросов от лишних союзов и мусора
         function extractCoreTopic(rawText) {
             let clean = rawText.trim().toLowerCase();
-            
-            // 1. Срезаем одиночные союзы и мусор в самом начале строки (а, и, ну, о)
-            clean = clean.replace(/^[а-яёa-z]\s+/gi, '');
-            
-            // 2. Вырезаем ключевые фразы вопросов
+            clean = clean.replace(/^[а-яёa-z]\s+/gi, ''); // Срезаем одиночные буквы в начале ("а что такое" -> "что такое")
             clean = clean.replace(/(что такое|кто такой|кто такая|что за|расскажи про|расскажи о|знаешь ли ты|знаешь|покажи|объясни)/gi, '');
-            
-            // 3. Повторно срезаем одиночные буквы, если они вскрылись после удаления фраз
-            clean = clean.trim().replace(/^[а-яёa-z]\s+/gi, '');
-            
-            // 4. Оставляем только чистые буквы, цифры и пробелы
-            clean = clean.replace(/[^a-zа-яё0-9\s]/g, '').trim();
-            return clean;
+            clean = clean.trim().replace(/^[а-яёa-z]\s+/gi, ''); // Повторный срез одиночных союзов
+            return clean.replace(/[^a-zа-яё0-9\s]/g, '').trim();
         }
 
-        // Функция обучения локальной матрицы весов
+        // Локальное обучение матрицы весов
         function trainModelOnText(text) {
             const words = text.toLowerCase()
                 .replace(/[^a-zа-яё0-9\s]/g, ' ')
@@ -180,33 +171,8 @@
             return true;
         }
 
-        // ================= ИНТЕГРАЦИЯ POLLINATIONS AI =================
-async function fetchFromPollinations(promptTopic) {
-    // Накладываем жесткое ограничение на длину ответа и запрещаем списки
-    const systemInstructions = "Ты — движок UINEEX Ai. Отвечай СТРОГО кратко и лаконично, максимум 2-3 коротких предложения. Выдавай только суть. Без списков, без лишней болтовни и без разметки markdown.";
-    
-    const url = `https://text.pollinations.ai/${encodeURIComponent(promptTopic)}?system=${encodeURIComponent(systemInstructions)}`;
-    
-    try {
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        const aiText = await response.text();
-        
-        // Дополнительная страховка: если облако всё равно прислало гигантский текст, 
-        // мы принудительно обрезаем его до первых 40 слов, чтобы чат не зависал на бесконечной печати
-        const words = aiText.trim().split(/\s+/);
-        if (words.length > 40) {
-            return words.slice(0, 40).join(' ') + '...';
-        }
-        
-        return aiText.trim();
-    } catch (e) {
-        return null;
-    }
-}
-
-        // Локальный генератор по весам
-        function generateTextFromWeights(startPhrase, maxWords = 30) {
+        // Локальный генератор СЫРОГО черновика по нашей матрице весов
+        function generateLocalDraft(startPhrase, maxWords = 25) {
             const weights = JSON.parse(localStorage.getItem('ai_weights'));
             const words = startPhrase.toLowerCase().split(/\s+/).filter(w => w.length > 0);
             
@@ -218,12 +184,12 @@ async function fetchFromPollinations(promptTopic) {
                 }
             }
 
+            // Если совпадений в базе вообще нет, собираем сырой набросок из слов самого запроса
             if (!currentWord) {
-                return `Вектор "${startPhrase}" обрабатывается через резервные каналы облака.`;
+                return words.join(' ');
             }
 
             let resultChain = [currentWord];
-
             for (let i = 0; i < maxWords; i++) {
                 const possibilities = weights[currentWord];
                 if (!possibilities || possibilities.length === 0) break;
@@ -232,11 +198,33 @@ async function fetchFromPollinations(promptTopic) {
                 currentWord = nextWord;
             }
 
-            let finalSentence = resultChain.join(' ');
-            return finalSentence.charAt(0).toUpperCase() + finalSentence.slice(1) + '.';
+            return resultChain.join(' ');
         }
 
-        // Стриминг вывода текста (пошаговая печать слов)
+        // ================= ОБЛАЧНЫЙ РЕДАКТОР (POLLINATIONS AI) =================
+        async function fetchImprovedResponse(userPrompt, localDraft) {
+            // Формируем жесткую инструкцию: ИИ из облака должен прочитать мысли локального ИИ и улучшить их
+            const systemInstructions = `Ты — экспертный редактор для системы UINEEX Ai. Твоя задача — прочитать вопрос пользователя и СЫРОЙ черновик от нашей локальной матрицы весов. Ты должен УЛУЧШИТЬ этот черновик: превратить его в грамотный, логичный и абсолютно связный ответ. Держись сути. Пиши СТРОГО кратко (2-3 предложения), без списков и без markdown. Черновик локальной матрицы для улучшения: "${localDraft}"`;
+            
+            const url = `https://text.pollinations.ai/${encodeURIComponent(userPrompt)}?system=${encodeURIComponent(systemInstructions)}`;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) return null;
+                const aiText = await response.text();
+                
+                // Страховочная обрезка длины
+                const words = aiText.trim().split(/\s+/);
+                if (words.length > 45) {
+                    return words.slice(0, 45).join(' ') + '...';
+                }
+                return aiText.trim();
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Пошаговый стриминг вывода текста
         async function printResponseByWords(element, prefix, fullText) {
             element.innerHTML = `<strong>${prefix}</strong><br><p></p>`;
             const pElement = element.querySelector('p');
@@ -250,81 +238,53 @@ async function fetchFromPollinations(promptTopic) {
         }
 
         async function sendMessage() {
-    const input = document.getElementById('userInput');
-    const chatArea = document.getElementById('chatArea');
-    const userRawText = input.value.trim();
-    
-    if (userRawText === '') return;
+            const input = document.getElementById('userInput');
+            const chatArea = document.getElementById('chatArea');
+            const userRawText = input.value.trim();
+            
+            if (userRawText === '') return;
 
-    // Выводим сообщение пользователя в чат
-    const userDiv = document.createElement('div');
-    userDiv.className = 'message user-message';
-    userDiv.textContent = userRawText;
-    chatArea.appendChild(userDiv);
-    input.value = '';
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user-message';
+            userDiv.textContent = userRawText;
+            chatArea.appendChild(userDiv);
+            input.value = '';
 
-    // Создаем пустой блок для ответа ИИ
-    const aiDiv = document.createElement('div');
-    aiDiv.className = 'message ai-message';
-    aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Анализирую синтаксис...</span>`;
-    chatArea.appendChild(aiDiv);
-    chatArea.scrollTop = chatArea.scrollHeight;
+            const aiDiv = document.createElement('div');
+            aiDiv.className = 'message ai-message';
+            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Запуск локальной матрицы...</span>`;
+            chatArea.appendChild(aiDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
 
-    const lowerText = userRawText.toLowerCase();
+            // ШАГ 1: Локальный ИИ генерирует свой сырой набросок (какой бы кривой он ни был)
+            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">СИНТЕЗ ЧЕРНОВИКА</b>`;
+            const coreTopic = extractCoreTopic(userRawText);
+            const localDraft = generateLocalDraft(coreTopic || userRawText);
 
-    // ================= ФИКС БАГА: ФИЛЬТР ПРИВЕТСТВИЙ (SMALL TALK) =================
-    // Если пользователь просто флудит или здоровается, отправляем напрямую в облако
-    const smallTalkWords = ['привет', 'как дела', 'ку', 'здравствуй', 'хай', 'че как', 'здарова', 'hello', 'hi'];
-    const isSmallTalk = smallTalkWords.some(word => lowerText.includes(word)) && userRawText.length < 20;
+            // Небольшая визуальная пауза для реализма
+            await new Promise(resolve => setTimeout(resolve, 200));
 
-    if (isSmallTalk) {
-        document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#bc74ff;">ЖИВОЙ ДИАЛОГ</b>`;
-        const cloudReply = await fetchFromPollinations(userRawText);
-        
-        if (cloudReply) {
-            await printResponseByWords(aiDiv, "UINEEX Ai:", cloudReply);
-        } else {
-            await printResponseByWords(aiDiv, "UINEEX Ai:", "Привет! У меня всё отлично, готов к работе. О чём поговорим?");
+            // ШАГ 2: Отправляем запрос + сырой черновик в Pollinations AI на полировку
+            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#bc74ff;">НЕЙРО-РЕДАКТИРОВАНИЕ</b>`;
+            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Черновик создан. Облако улучшает локальный ответ...</span>`;
+
+            const improvedText = await fetchImprovedResponse(userRawText, localDraft);
+
+            if (improvedText) {
+                // ШАГ 3: Обучаем локальную модель на УЛУЧШЕННОМ, идеальном тексте!
+                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#569cd6;">САМООБУЧЕНИЕ...</b>`;
+                trainModelOnText(improvedText);
+                
+                // ШАГ 4: Выводим красивый отполированный результат
+                await printResponseByWords(aiDiv, "UINEEX Ai (Синтез + Облачный Апгрейд):", improvedText);
+            } else {
+                // Если нет интернета — выводим локальный черновик как есть
+                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#a12626;">ОФФЛАЙН</b>`;
+                await printResponseByWords(aiDiv, "UINEEX Ai (Только локальные веса):", localDraft);
+            }
+            
+            document.getElementById('debugStatus').innerText = "Режим: Ожидание";
         }
-        document.getElementById('debugStatus').innerText = "Режим: Ожидание";
-        return; // Выходим из функции, чтобы не запускать обучение по Вите Исаеву!
-    }
-    // ==============================================================================
-
-    // Применяем очиститель для сложных вопросов
-    const coreTopic = extractCoreTopic(userRawText);
-    const weights = JSON.parse(localStorage.getItem('ai_weights'));
-
-    const coreWords = coreTopic.split(/\s+/);
-    const lastCoreWord = coreWords[coreWords.length - 1];
-
-    // Если слово уже выучено в локальной матрице весов
-    if (lastCoreWord && weights[lastCoreWord]) {
-        document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">ЛОКАЛЬНЫЕ ВЕСА</b>`;
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        const generatedOutput = generateTextFromWeights(coreTopic);
-        await printResponseByWords(aiDiv, "UINEEX Ai (Синтез):", generatedOutput);
-    } else {
-        // Если тема абсолютно новая
-        document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#e9ae45;">POLLINATIONS CLOUD</b>`;
-        aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Запрос к нейросетевому облаку по теме "${coreTopic || userRawText}"...</span>`;
-
-        const aiCloudResponse = await fetchFromPollinations(coreTopic || userRawText);
-
-        if (aiCloudResponse) {
-            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#569cd6;">МАТРИЧНОЕ ОБУЧЕНИЕ</b>`;
-            trainModelOnText(aiCloudResponse);
-            await printResponseByWords(aiDiv, `UINEEX Ai:`, aiCloudResponse);
-        } else {
-            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#a12626;">ОФФЛАЙН</b>`;
-            const fallback = generateTextFromWeights(userRawText);
-            await printResponseByWords(aiDiv, "UINEEX Ai (Локальный резерв):", fallback);
-        }
-    }
-    
-    document.getElementById('debugStatus').innerText = "Режим: Ожидание";
-}
 
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
         document.getElementById('userInput').addEventListener('keydown', (event) => {
