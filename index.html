@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UINEEX Ai - Нейро-Пайплайн v4.0</title>
+    <title>UINEEX Ai - Умный Пайплайн v4.1</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -108,9 +108,9 @@
     <div class="main-container">
         <div class="chat-area" id="chatArea">
             <div class="message ai-message">
-                Привет! Архитектура **Нейро-Пайплайна** успешно развернута. 
+                Привет! Баг с "эхо-ответами" успешно устранен.
                 <br><br>
-                Теперь я работаю так: сначала моя локальная матрица весов генерирует сырые мысли, а затем облако **Pollinations AI** выступает в роли главного редактора — оно берёт мой черновик и превращает его в идеальный ответ, попутно обучая локальную базу! Лишние союзы на входе больше ничего не ломают.
+                Теперь, если наша локальная база пуста, мы явно приказываем облаку **Pollinations AI** не заниматься глупым копированием черновика, а генерировать полноценное, красивое и познавательное объяснение с нуля!
             </div>
         </div>
 
@@ -140,12 +140,12 @@
             }
         });
 
-        // Улучшенный очиститель запросов от лишних союзов и мусора
+        // Очиститель запросов от мусора
         function extractCoreTopic(rawText) {
             let clean = rawText.trim().toLowerCase();
-            clean = clean.replace(/^[а-яёa-z]\s+/gi, ''); // Срезаем одиночные буквы в начале ("а что такое" -> "что такое")
+            clean = clean.replace(/^[а-яёa-z]\s+/gi, ''); 
             clean = clean.replace(/(что такое|кто такой|кто такая|что за|расскажи про|расскажи о|знаешь ли ты|знаешь|покажи|объясни)/gi, '');
-            clean = clean.trim().replace(/^[а-яёa-z]\s+/gi, ''); // Повторный срез одиночных союзов
+            clean = clean.trim().replace(/^[а-яёa-z]\s+/gi, ''); 
             return clean.replace(/[^a-zа-яё0-9\s]/g, '').trim();
         }
 
@@ -171,7 +171,7 @@
             return true;
         }
 
-        // Локальный генератор СЫРОГО черновика по нашей матрице весов
+        // Локальный генератор черновика
         function generateLocalDraft(startPhrase, maxWords = 25) {
             const weights = JSON.parse(localStorage.getItem('ai_weights'));
             const words = startPhrase.toLowerCase().split(/\s+/).filter(w => w.length > 0);
@@ -184,7 +184,6 @@
                 }
             }
 
-            // Если совпадений в базе вообще нет, собираем сырой набросок из слов самого запроса
             if (!currentWord) {
                 return words.join(' ');
             }
@@ -201,10 +200,18 @@
             return resultChain.join(' ');
         }
 
-        // ================= ОБЛАЧНЫЙ РЕДАКТОР (POLLINATIONS AI) =================
-        async function fetchImprovedResponse(userPrompt, localDraft) {
-            // Формируем жесткую инструкцию: ИИ из облака должен прочитать мысли локального ИИ и улучшить их
-            const systemInstructions = `Ты — экспертный редактор для системы UINEEX Ai. Твоя задача — прочитать вопрос пользователя и СЫРОЙ черновик от нашей локальной матрицы весов. Ты должен УЛУЧШИТЬ этот черновик: превратить его в грамотный, логичный и абсолютно связный ответ. Держись сути. Пиши СТРОГО кратко (2-3 предложения), без списков и без markdown. Черновик локальной матрицы для улучшения: "${localDraft}"`;
+        // ================= УЛУЧШЕННЫЙ ОБЛАЧНЫЙ ИНТЕЛЛЕКТ =================
+        async function fetchImprovedResponse(userPrompt, localDraft, coreTopic) {
+            let draftInstructions = "";
+            
+            // Если черновик состоит всего из 1 слова или равен очищенной теме, значит локальная база пуста!
+            if (localDraft.trim() === coreTopic.trim() || localDraft.split(/\s+/).length <= 1) {
+                draftInstructions = "ВНИМАНИЕ: Локальная база данных пуста. Черновика нет. Дай полноценный, развернутый, энциклопедический ответ на вопрос пользователя с чистого листа, объяснив значение термина.";
+            } else {
+                draftInstructions = `ВНИМАНИЕ: Локальная база сгенерировала сырой черновик: "${localDraft}". Если это несвязный бред, исправь его, превратив в грамотный и логичный ответ.`;
+            }
+
+            const systemInstructions = `Ты — продвинутый ИИ-модуль для системы UINEEX Ai. Твоя главная задача — развернуто и понятно ответить на вопрос пользователя на русском языке. Пиши СТРОГО кратко (всего 2-3 информативных предложения), без списков, без использования разметки markdown (без звездочек). ${draftInstructions}`;
             
             const url = `https://text.pollinations.ai/${encodeURIComponent(userPrompt)}?system=${encodeURIComponent(systemInstructions)}`;
             
@@ -213,7 +220,7 @@
                 if (!response.ok) return null;
                 const aiText = await response.text();
                 
-                // Страховочная обрезка длины
+                // Обрезка гигантских простыней, если облако увлеклось
                 const words = aiText.trim().split(/\s+/);
                 if (words.length > 45) {
                     return words.slice(0, 45).join(' ') + '...';
@@ -224,7 +231,7 @@
             }
         }
 
-        // Пошаговый стриминг вывода текста
+        // Стриминг текста
         async function printResponseByWords(element, prefix, fullText) {
             element.innerHTML = `<strong>${prefix}</strong><br><p></p>`;
             const pElement = element.querySelector('p');
@@ -252,35 +259,26 @@
 
             const aiDiv = document.createElement('div');
             aiDiv.className = 'message ai-message';
-            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Запуск локальной матрицы...</span>`;
+            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Инициализация матричных весов...</span>`;
             chatArea.appendChild(aiDiv);
             chatArea.scrollTop = chatArea.scrollHeight;
 
-            // ШАГ 1: Локальный ИИ генерирует свой сырой набросок (какой бы кривой он ни был)
-            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#4fc1ff;">СИНТЕЗ ЧЕРНОВИКА</b>`;
             const coreTopic = extractCoreTopic(userRawText);
             const localDraft = generateLocalDraft(coreTopic || userRawText);
 
-            // Небольшая визуальная пауза для реализма
-            await new Promise(resolve => setTimeout(resolve, 200));
+            document.getElementById('debugStatus').innerHTML = `` + `Режим: <b style="color:#bc74ff;">ОБЛАЧНЫЙ АПГРЕЙД</b>`;
+            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Обработка синтаксического дерева в облаке...</span>`;
 
-            // ШАГ 2: Отправляем запрос + сырой черновик в Pollinations AI на полировку
-            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#bc74ff;">НЕЙРО-РЕДАКТИРОВАНИЕ</b>`;
-            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Черновик создан. Облако улучшает локальный ответ...</span>`;
-
-            const improvedText = await fetchImprovedResponse(userRawText, localDraft);
+            // Передаем coreTopic в функцию, чтобы скрипт мог проверить, пустая ли база
+            const improvedText = await fetchImprovedResponse(userRawText, localDraft, coreTopic);
 
             if (improvedText) {
-                // ШАГ 3: Обучаем локальную модель на УЛУЧШЕННОМ, идеальном тексте!
                 document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#569cd6;">САМООБУЧЕНИЕ...</b>`;
                 trainModelOnText(improvedText);
-                
-                // ШАГ 4: Выводим красивый отполированный результат
-                await printResponseByWords(aiDiv, "UINEEX Ai (Синтез + Облачный Апгрейд):", improvedText);
+                await printResponseByWords(aiDiv, "UINEEX Ai (Пайплайн):", improvedText);
             } else {
-                // Если нет интернета — выводим локальный черновик как есть
                 document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#a12626;">ОФФЛАЙН</b>`;
-                await printResponseByWords(aiDiv, "UINEEX Ai (Только локальные веса):", localDraft);
+                await printResponseByWords(aiDiv, "UINEEX Ai (Резерв):", localDraft);
             }
             
             document.getElementById('debugStatus').innerText = "Режим: Ожидание";
