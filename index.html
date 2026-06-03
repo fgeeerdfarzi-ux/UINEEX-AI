@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UINEEX Ai - Умный Пайплайн v4.1</title>
+    <title>UINEEX Ai - Авто-Обучение v5.0</title>
     <style>
+        /* Строгая СЕРАЯ темная тема */
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #1e1e1e;
-            color: #ffffff;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
             margin: 0;
             display: flex;
             height: 100vh;
@@ -16,8 +17,8 @@
 
         .sidebar {
             width: 300px;
-            background-color: #252526;
-            border-right: 1px solid #3c3c3c;
+            background-color: #242424;
+            border-right: 1px solid #333333;
             padding: 20px;
             display: flex;
             flex-direction: column;
@@ -25,16 +26,16 @@
             box-sizing: border-box;
         }
 
-        .logo { font-size: 22px; font-weight: bold; color: #569cd6; text-align: center; }
+        .logo { font-size: 22px; font-weight: bold; color: #cccccc; text-align: center; letter-spacing: 1px; }
 
         .panel-box {
             background-color: #2d2d2d;
             padding: 12px;
             border-radius: 6px;
-            border: 1px solid #3c3c3c;
+            border: 1px solid #3d3d3d;
         }
 
-        .panel-box h3 { margin-top: 0; font-size: 13px; color: #4fc1ff; }
+        .panel-box h3 { margin-top: 0; font-size: 13px; color: #b0b0b0; text-transform: uppercase; }
 
         .main-container { flex: 1; display: flex; flex-direction: column; height: 100vh; }
 
@@ -45,24 +46,24 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            background-color: #1e1e1e;
+            background-color: #1a1a1a;
         }
 
         .message { padding: 15px; border-radius: 6px; max-width: 85%; line-height: 1.5; word-wrap: break-word; }
-        .user-message { background-color: #2d2d2d; align-self: flex-end; border: 1px solid #3c3c3c; }
-        .ai-message { background-color: #252526; align-self: flex-start; border: 1px solid #3c3c3c; width: 95%; box-sizing: border-box; }
+        .user-message { background-color: #333333; align-self: flex-end; border: 1px solid #444444; }
+        .ai-message { background-color: #242424; align-self: flex-start; border: 1px solid #333333; width: 95%; box-sizing: border-box; }
 
-        .thinking { color: #858585; font-style: italic; animation: blink 1.5s infinite; }
+        .thinking { color: #888888; font-style: italic; animation: blink 1.5s infinite; }
         @keyframes blink { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-        .input-area { padding: 15px; background-color: #252526; border-top: 1px solid #3c3c3c; display: flex; gap: 10px; }
+        .input-area { padding: 15px; background-color: #242424; border-top: 1px solid #333333; display: flex; gap: 10px; }
 
         textarea {
             width: 100%;
             background-color: #2d2d2d;
-            border: 1px solid #3c3c3c;
+            border: 1px solid #444444;
             border-radius: 4px;
-            color: #fff;
+            color: #e0e0e0;
             padding: 12px;
             font-family: inherit;
             box-sizing: border-box;
@@ -71,18 +72,26 @@
             font-size: 16px;
         }
 
-        textarea:focus { outline: 1px solid #569cd6; }
+        textarea:focus { outline: 1px solid #777777; }
 
+        /* Кнопки теперь тоже в серых тонах */
         button {
-            background-color: #0e639c; color: white; border: none; border-radius: 6px;
-            padding: 10px 20px; cursor: pointer; font-weight: bold;
+            background-color: #4a4a4a; color: white; border: none; border-radius: 6px;
+            padding: 10px 20px; cursor: pointer; font-weight: bold; transition: 0.2s;
         }
-        button:hover { background-color: #1177bb; }
-        .status { font-size: 11px; color: #aaaaaa; margin-top: 5px; }
+        button:hover { background-color: #5a5a5a; }
+        
+        .btn-red { background-color: #8b3a3a; padding: 6px; font-size: 11px; width: 100%; margin-top: 5px; }
+        .btn-red:hover { background-color: #a34444; }
+
+        .btn-green { background-color: #3a8b4a; padding: 8px; font-size: 12px; width: 100%; margin-top: 10px; }
+        .btn-green:hover { background-color: #44a356; }
+
+        .status { font-size: 11px; color: #aaaaaa; margin-top: 5px; transition: color 0.3s; }
 
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #3c3c3c; padding: 10px; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #333333; padding: 10px; }
             .panel-box { display: none; }
             .chat-area { padding: 10px; }
         }
@@ -94,13 +103,14 @@
         <div class="logo">UINEEX Ai</div>
         
         <div class="panel-box">
-            <h3>📊 Вероятностная Матрица</h3>
-            <div class="status" id="matrixStatus">Параметры: 0 токенов</div>
-            <button id="clearWeightsBtn" style="width:100%; margin-top:10px; padding:4px; font-size:11px; background-color:#a12626; border:none; color:white; border-radius:4px; cursor:pointer;">Сбросить веса</button>
+            <h3>📊 Матрица Знаний</h3>
+            <div class="status" id="matrixStatus" style="font-size: 13px;">Параметры: 0 токенов</div>
+            <button id="autoTrainBtn" class="btn-green">🚀 Включить Авто-Обучение</button>
+            <button id="clearWeightsBtn" class="btn-red">Сбросить веса</button>
         </div>
 
         <div class="panel-box">
-            <h3>🧠 Режим Мышления</h3>
+            <h3>🧠 Системный Лог</h3>
             <div class="status" id="debugStatus">Режим: Ожидание</div>
         </div>
     </div>
@@ -108,15 +118,15 @@
     <div class="main-container">
         <div class="chat-area" id="chatArea">
             <div class="message ai-message">
-                Привет! Баг с "эхо-ответами" успешно устранен.
+                Привет! Интерфейс перекрашен в строгий серый цвет. 
                 <br><br>
-                Теперь, если наша локальная база пуста, мы явно приказываем облаку **Pollinations AI** не заниматься глупым копированием черновика, а генерировать полноценное, красивое и познавательное объяснение с нуля!
+                Добавлена функция <b>Авто-Обучения</b>. Нажми зеленую кнопку слева, и я начну самостоятельно связываться с облаком Pollinations, запрашивать случайные факты и фармить токены в локальную базу данных, пока ты отдыхаешь!
             </div>
         </div>
 
         <div class="input-area">
             <textarea id="userInput" placeholder="Задай любой вопрос ИИ..."></textarea>
-            <button id="sendBtn">ИИ</button>
+            <button id="sendBtn">Отправить</button>
         </div>
     </div>
 
@@ -130,17 +140,63 @@
         function updateMatrixStatus() {
             const weights = JSON.parse(localStorage.getItem('ai_weights'));
             const totalLinks = Object.keys(weights).length;
-            document.getElementById('matrixStatus').innerHTML = `В базе параметров: <b>${totalLinks} уникальных слов</b>`;
+            const statusEl = document.getElementById('matrixStatus');
+            statusEl.innerHTML = `В базе: <b>${totalLinks} слов</b>`;
+            // Визуальный эффект при добавлении новых слов
+            statusEl.style.color = "#ffffff";
+            setTimeout(() => statusEl.style.color = "#aaaaaa", 500);
         }
 
         document.getElementById('clearWeightsBtn').addEventListener('click', () => {
-            if(confirm("Вы уверены, что хотите стереть все выученные токены?")) {
+            if(confirm("Стереть все выученные слова из матрицы?")) {
                 localStorage.setItem('ai_weights', JSON.stringify({}));
                 location.reload();
             }
         });
 
-        // Очиститель запросов от мусора
+        // ================= ФОНОВОЕ АВТО-ОБУЧЕНИЕ =================
+        let autoTrainInterval = null;
+        const autoTrainBtn = document.getElementById('autoTrainBtn');
+
+        autoTrainBtn.addEventListener('click', () => {
+            if (autoTrainInterval) {
+                // Выключаем
+                clearInterval(autoTrainInterval);
+                autoTrainInterval = null;
+                autoTrainBtn.innerHTML = "🚀 Включить Авто-Обучение";
+                autoTrainBtn.className = "btn-green";
+                document.getElementById('debugStatus').innerText = "Режим: Ожидание";
+            } else {
+                // Включаем
+                autoTrainBtn.innerHTML = "🛑 Остановить фарм слов";
+                autoTrainBtn.style.backgroundColor = "#a12626";
+                runAutoTrainCycle(); // Запускаем первый раз сразу
+                autoTrainInterval = setInterval(runAutoTrainCycle, 12000); // Повторяем каждые 12 секунд
+            }
+        });
+
+        async function runAutoTrainCycle() {
+            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#a8a8a8;">ФОНОВЫЙ ФАРМ ДАННЫХ...</b>`;
+            
+            // Список тем для самообучения
+            const topics = ["наука", "космос", "программирование", "животные", "технологии", "история", "география", "физика", "искусство"];
+            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+            
+            const systemInstructions = `Ты учитель. Расскажи один короткий, очень интересный факт на тему: ${randomTopic}. Строго 1 предложение. Без маркдауна.`;
+            const url = `https://text.pollinations.ai/${encodeURIComponent("Расскажи факт")}?system=${encodeURIComponent(systemInstructions)}`;
+            
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const text = await response.text();
+                    trainModelOnText(text); // Обучаем матрицу!
+                }
+            } catch (e) {
+                console.log("Ошибка авто-обучения", e);
+            }
+        }
+        // =========================================================
+
         function extractCoreTopic(rawText) {
             let clean = rawText.trim().toLowerCase();
             clean = clean.replace(/^[а-яёa-z]\s+/gi, ''); 
@@ -149,7 +205,6 @@
             return clean.replace(/[^a-zа-яё0-9\s]/g, '').trim();
         }
 
-        // Локальное обучение матрицы весов
         function trainModelOnText(text) {
             const words = text.toLowerCase()
                 .replace(/[^a-zа-яё0-9\s]/g, ' ')
@@ -163,15 +218,17 @@
                 const currentWord = words[i];
                 const nextWord = words[i + 1];
                 if (!weights[currentWord]) weights[currentWord] = [];
-                weights[currentWord].push(nextWord);
+                // Защита от дубликатов, чтобы база не раздувалась одинаковыми связями
+                if (!weights[currentWord].includes(nextWord)) {
+                    weights[currentWord].push(nextWord);
+                }
             }
 
             localStorage.setItem('ai_weights', JSON.stringify(weights));
-            updateMatrixStatus();
+            updateMatrixStatus(); // Обновляем счетчик на экране
             return true;
         }
 
-        // Локальный генератор черновика
         function generateLocalDraft(startPhrase, maxWords = 25) {
             const weights = JSON.parse(localStorage.getItem('ai_weights'));
             const words = startPhrase.toLowerCase().split(/\s+/).filter(w => w.length > 0);
@@ -184,9 +241,7 @@
                 }
             }
 
-            if (!currentWord) {
-                return words.join(' ');
-            }
+            if (!currentWord) return words.join(' ');
 
             let resultChain = [currentWord];
             for (let i = 0; i < maxWords; i++) {
@@ -200,38 +255,29 @@
             return resultChain.join(' ');
         }
 
-        // ================= УЛУЧШЕННЫЙ ОБЛАЧНЫЙ ИНТЕЛЛЕКТ =================
         async function fetchImprovedResponse(userPrompt, localDraft, coreTopic) {
             let draftInstructions = "";
-            
-            // Если черновик состоит всего из 1 слова или равен очищенной теме, значит локальная база пуста!
             if (localDraft.trim() === coreTopic.trim() || localDraft.split(/\s+/).length <= 1) {
-                draftInstructions = "ВНИМАНИЕ: Локальная база данных пуста. Черновика нет. Дай полноценный, развернутый, энциклопедический ответ на вопрос пользователя с чистого листа, объяснив значение термина.";
+                draftInstructions = "База данных ИИ пока не знает ответа. Напиши полноценный и грамотный ответ с чистого листа.";
             } else {
-                draftInstructions = `ВНИМАНИЕ: Локальная база сгенерировала сырой черновик: "${localDraft}". Если это несвязный бред, исправь его, превратив в грамотный и логичный ответ.`;
+                draftInstructions = `Локальная база выдала такой черновик: "${localDraft}". Исправь его, преврати в грамотный ответ.`;
             }
 
-            const systemInstructions = `Ты — продвинутый ИИ-модуль для системы UINEEX Ai. Твоя главная задача — развернуто и понятно ответить на вопрос пользователя на русском языке. Пиши СТРОГО кратко (всего 2-3 информативных предложения), без списков, без использования разметки markdown (без звездочек). ${draftInstructions}`;
-            
+            const systemInstructions = `Ты — ядро UINEEX Ai. Твоя задача — ответить на вопрос. Пиши кратко (2-3 предложения), без списков и markdown. ${draftInstructions}`;
             const url = `https://text.pollinations.ai/${encodeURIComponent(userPrompt)}?system=${encodeURIComponent(systemInstructions)}`;
             
             try {
                 const response = await fetch(url);
                 if (!response.ok) return null;
                 const aiText = await response.text();
-                
-                // Обрезка гигантских простыней, если облако увлеклось
                 const words = aiText.trim().split(/\s+/);
-                if (words.length > 45) {
-                    return words.slice(0, 45).join(' ') + '...';
-                }
+                if (words.length > 45) return words.slice(0, 45).join(' ') + '...';
                 return aiText.trim();
             } catch (e) {
                 return null;
             }
         }
 
-        // Стриминг текста
         async function printResponseByWords(element, prefix, fullText) {
             element.innerHTML = `<strong>${prefix}</strong><br><p></p>`;
             const pElement = element.querySelector('p');
@@ -240,7 +286,7 @@
             for (let word of words) {
                 pElement.innerHTML += word + ' ';
                 document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
-                await new Promise(resolve => setTimeout(resolve, 60));
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
         }
 
@@ -259,25 +305,21 @@
 
             const aiDiv = document.createElement('div');
             aiDiv.className = 'message ai-message';
-            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Инициализация матричных весов...</span>`;
+            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Анализ...</span>`;
             chatArea.appendChild(aiDiv);
             chatArea.scrollTop = chatArea.scrollHeight;
 
             const coreTopic = extractCoreTopic(userRawText);
             const localDraft = generateLocalDraft(coreTopic || userRawText);
 
-            document.getElementById('debugStatus').innerHTML = `` + `Режим: <b style="color:#bc74ff;">ОБЛАЧНЫЙ АПГРЕЙД</b>`;
-            aiDiv.innerHTML = `<strong>UINEEX Ai:</strong><br><span class="thinking">Обработка синтаксического дерева в облаке...</span>`;
-
-            // Передаем coreTopic в функцию, чтобы скрипт мог проверить, пустая ли база
+            document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#c5c5c5;">ПОИСК ОТВЕТА</b>`;
+            
             const improvedText = await fetchImprovedResponse(userRawText, localDraft, coreTopic);
 
             if (improvedText) {
-                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#569cd6;">САМООБУЧЕНИЕ...</b>`;
                 trainModelOnText(improvedText);
-                await printResponseByWords(aiDiv, "UINEEX Ai (Пайплайн):", improvedText);
+                await printResponseByWords(aiDiv, "UINEEX Ai:", improvedText);
             } else {
-                document.getElementById('debugStatus').innerHTML = `Режим: <b style="color:#a12626;">ОФФЛАЙН</b>`;
                 await printResponseByWords(aiDiv, "UINEEX Ai (Резерв):", localDraft);
             }
             
